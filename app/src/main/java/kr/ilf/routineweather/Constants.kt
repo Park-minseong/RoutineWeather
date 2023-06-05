@@ -8,10 +8,13 @@ import android.os.Build
 object Constants {
 
     const val OPENWEATHER_API_KEY = BuildConfig.OPENWEATHER_API_KEY
-    const val BASE_URL = "https://api.openweathermap.org/data/"
+    const val OPENAPI_API_KEY = BuildConfig.OPENAPI_API_KEY
+    const val BASE_URL = "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/"
     const val METRIC_UNIT = "metric"
     const val PREFERENCE_NAME = "WeatherAppPreference"
-    const val WEATHER_RESPONSE_DATA = "weather_response_data"
+    const val WEATHER_RESPONSE_DATA_ULTRA_FCST = "weather_response_data_ultra_fcst"
+    const val WEATHER_RESPONSE_DATA_ULTRA_NCST = "weather_response_data_ultra_ncst"
+    const val WEATHER_RESPONSE_DATA_VILAGE_FCST = "weather_response_data_vilage_fcst"
 
     fun isNetworkAvailable(context: Context): Boolean {
         val connectivityManager =

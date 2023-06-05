@@ -33,9 +33,16 @@ import com.karumi.dexter.PermissionToken
 import com.karumi.dexter.listener.PermissionRequest
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener
 import kr.ilf.routineweather.databinding.ActivityMainBinding
+import kr.ilf.routineweather.model.UltraSrtNcst
 import kr.ilf.routineweather.model.WeatherResponse
 import kr.ilf.routineweather.network.WeatherService
-import retrofit.*
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -156,35 +163,89 @@ class MainActivity : AppCompatActivity() {
 
     private fun getLocationWeatherDetails(latitude: Double, longitude: Double) {
         if (Constants.isNetworkAvailable(this)) {
+            val interceptor = HttpLoggingInterceptor()
+
+            if (BuildConfig.DEBUG) {
+                interceptor.level = HttpLoggingInterceptor.Level.BODY
+            } else {
+                interceptor.level = HttpLoggingInterceptor.Level.NONE
+            }
+
+            val okHttpClient = OkHttpClient().newBuilder()
+                .addNetworkInterceptor(interceptor)
+                .build()
+
             val retrofit: Retrofit = Retrofit.Builder()
                 .baseUrl(Constants.BASE_URL)
                 .addConverterFactory(GsonConverterFactory.create())
+                .client(okHttpClient)
                 .build()
 
             val service: WeatherService = retrofit.create(WeatherService::class.java)
 
-            val listCall: Call<WeatherResponse> = service.getWeather(
-                latitude, longitude, Constants.METRIC_UNIT, Constants.OPENWEATHER_API_KEY
+            Log.d("api_key", Constants.OPENAPI_API_KEY)
+
+            val ultraSrtFcstCall: Call<WeatherResponse> = service.getUltraSrtNcst(
+                Constants.OPENAPI_API_KEY, 1, 10, "JSON", "20230605", "1400", 61, 125
             )
 
             showCustomProgressDialog()
 
-            listCall.enqueue(object : Callback<WeatherResponse> {
-                override fun onResponse(response: Response<WeatherResponse>?, retrofit: Retrofit?) {
-                    if (response!!.isSuccess) {
+            ultraSrtFcstCall.enqueue(object : Callback<WeatherResponse> {
+                override fun onResponse(
+                    call: Call<WeatherResponse>,
+                    response: Response<WeatherResponse>
+                ) {
+                    if (response.isSuccessful) {
                         hideProgressDialog()
 
-                        val weatherList: WeatherResponse = response.body()
+                        val responseData: WeatherResponse? = response.body()
 
-                        val weatherResponseJSonString = Gson().toJson(weatherList)
+                        var baseTime = responseData?.response?.body?.items?.item?.get(0)?.baseTime
+                        var baseDate = responseData?.response?.body?.items?.item?.get(0)?.baseDate
+                        var pty: String? = null
+                        var t1h: String? = null
+                        var rn1: String? = null
+                        var reh: String? = null
+
+                        responseData?.response?.body?.items?.item?.forEach {
+                            Log.d("inForeach:", "OK")
+                            when (it.category) {
+                                "PTY" -> {
+                                    pty = it.obsrValue!!
+                                }
+
+                                "T1H" -> {
+                                    t1h = it.obsrValue!!
+                                }
+
+                                "RN1" -> {
+                                    rn1 = it.obsrValue!!
+                                }
+
+                                "REH" -> {
+                                    reh = it.obsrValue!!
+                                }
+                            }
+                        }
+
+                        val ultraSrtNcst =
+                            UltraSrtNcst(baseTime!!, baseDate!!, pty!!, t1h!!, rn1!!, reh!!)
+
+                        val ultraSrtNcstJSonString = Gson().toJson(ultraSrtNcst)
+
+                        Log.d("ultraSrtNcstJSonString:", ultraSrtNcstJSonString)
 
                         val editor = mSharedPreferences.edit()
-                        editor.putString(Constants.WEATHER_RESPONSE_DATA, weatherResponseJSonString)
+                        editor.putString(
+                            Constants.WEATHER_RESPONSE_DATA_ULTRA_NCST,
+                            ultraSrtNcstJSonString
+                        )
                         editor.apply()
 
                         setupUI()
 
-                        Log.i("Response Result", "$weatherList")
+                        Log.i("Response Result", "$responseData")
                     } else {
                         val rc = response.code()
 
@@ -202,9 +263,9 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
-                override fun onFailure(t: Throwable?) {
+                override fun onFailure(call: Call<WeatherResponse>, t: Throwable) {
                     hideProgressDialog()
-                    Log.e("Errorrrrr.", t!!.message.toString())
+                    Log.e("Errorrrrr.", t.message.toString())
                 }
             })
         }
@@ -250,51 +311,34 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("SetTextI18n")
     private fun setupUI() {
 
-        val weatherResponseJsonString =
-            mSharedPreferences.getString(Constants.WEATHER_RESPONSE_DATA, "")
+        val ultraSrtNcstJsonString =
+            mSharedPreferences.getString(Constants.WEATHER_RESPONSE_DATA_ULTRA_NCST, "")
 
-        if (!weatherResponseJsonString.isNullOrEmpty()) {
-            val weatherList =
-                Gson().fromJson(weatherResponseJsonString, WeatherResponse::class.java)
+        if (!ultraSrtNcstJsonString.isNullOrEmpty()) {
+            val ultraSrtNcst =
+                Gson().fromJson(ultraSrtNcstJsonString, UltraSrtNcst::class.java)
 
-            for (i in weatherList.weather.indices) {
-                Log.i("Weather Name", weatherList.weather.toString())
+            binding?.tvTemp?.text = ultraSrtNcst.t1h + getUnit()
+            binding?.tvHumidity?.text = ultraSrtNcst.reh + " %"
+            binding?.tvPrecipitation?.text = ultraSrtNcst.rn1 + "mm"
+//
+//                when (weatherList.weather[i].icon) {
+//                    "01d" -> binding?.ivMain?.setImageResource(R.drawable.sunny)
+//                    "02d" -> binding?.ivMain?.setImageResource(R.drawable.cloud)
+//                    "03d" -> binding?.ivMain?.setImageResource(R.drawable.cloud)
+//                    "04d" -> binding?.ivMain?.setImageResource(R.drawable.cloud)
+//                    "04n" -> binding?.ivMain?.setImageResource(R.drawable.cloud)
+//                    "10d" -> binding?.ivMain?.setImageResource(R.drawable.rain)
+//                    "11d" -> binding?.ivMain?.setImageResource(R.drawable.storm)
+//                    "13d" -> binding?.ivMain?.setImageResource(R.drawable.snowflake)
+//                    "01n" -> binding?.ivMain?.setImageResource(R.drawable.cloud)
+//                    "02n" -> binding?.ivMain?.setImageResource(R.drawable.cloud)
+//                    "03n" -> binding?.ivMain?.setImageResource(R.drawable.cloud)
+//                    "10n" -> binding?.ivMain?.setImageResource(R.drawable.cloud)
+//                    "11n" -> binding?.ivMain?.setImageResource(R.drawable.rain)
+//                    "13n" -> binding?.ivMain?.setImageResource(R.drawable.snowflake)
+//                }
 
-                binding?.tvMain?.text = weatherList.weather[i].main
-                binding?.tvMainDescription?.text =
-                    Constants.weatherDescKo[weatherList.weather[i].id]
-
-
-                binding?.tvTemp?.text = weatherList.main.temp.toString() + getUnit()
-
-
-                binding?.tvHumidity?.text = weatherList.main.humidity.toString() + " %"
-                binding?.tvMin?.text = weatherList.main.temp_min.toString() + getUnit() + " ▼"
-                binding?.tvMax?.text = weatherList.main.temp_max.toString() + getUnit() + " ▲"
-                binding?.tvSpeed?.text = weatherList.wind.speed.toString()
-                binding?.tvName?.text = weatherList.name
-                binding?.tvCountry?.text = weatherList.sys.country
-
-                binding?.tvSunriseTime?.text = unixTime(weatherList.sys.sunrise)
-                binding?.tvSunsetTime?.text = unixTime(weatherList.sys.sunset)
-
-                when (weatherList.weather[i].icon) {
-                    "01d" -> binding?.ivMain?.setImageResource(R.drawable.sunny)
-                    "02d" -> binding?.ivMain?.setImageResource(R.drawable.cloud)
-                    "03d" -> binding?.ivMain?.setImageResource(R.drawable.cloud)
-                    "04d" -> binding?.ivMain?.setImageResource(R.drawable.cloud)
-                    "04n" -> binding?.ivMain?.setImageResource(R.drawable.cloud)
-                    "10d" -> binding?.ivMain?.setImageResource(R.drawable.rain)
-                    "11d" -> binding?.ivMain?.setImageResource(R.drawable.storm)
-                    "13d" -> binding?.ivMain?.setImageResource(R.drawable.snowflake)
-                    "01n" -> binding?.ivMain?.setImageResource(R.drawable.cloud)
-                    "02n" -> binding?.ivMain?.setImageResource(R.drawable.cloud)
-                    "03n" -> binding?.ivMain?.setImageResource(R.drawable.cloud)
-                    "10n" -> binding?.ivMain?.setImageResource(R.drawable.cloud)
-                    "11n" -> binding?.ivMain?.setImageResource(R.drawable.rain)
-                    "13n" -> binding?.ivMain?.setImageResource(R.drawable.snowflake)
-                }
-            }
         }
     }
 
