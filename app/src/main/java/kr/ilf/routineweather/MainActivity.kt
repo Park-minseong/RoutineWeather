@@ -53,6 +53,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mFusedLocationClient: FusedLocationProviderClient
     private lateinit var mSharedPreferences: SharedPreferences
 
+    private var isCompletedCallUltraSrtNcst = true
+    private var isCompletedCallUltraSrtFcst = true
+    private var isCompletedCallVilageFcst = true
+
     private var binding: ActivityMainBinding? = null
 
     private var mProgressDialog: Dialog? = null
@@ -71,6 +75,10 @@ class MainActivity : AppCompatActivity() {
         showCustomProgressDialog()
 
         setupUI()
+
+        isCompletedCallUltraSrtNcst = false
+        isCompletedCallUltraSrtFcst = false
+        isCompletedCallVilageFcst = false
 
         if (!isLocationEnabled()) {
             Toast.makeText(
@@ -163,6 +171,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun getLocationWeatherDetails(latitude: Double, longitude: Double) {
         if (Constants.isNetworkAvailable(this)) {
+            // HTTP요청 Logging용 클라이언트 선언
             val interceptor = HttpLoggingInterceptor()
 
             if (BuildConfig.DEBUG) {
@@ -174,6 +183,7 @@ class MainActivity : AppCompatActivity() {
             val okHttpClient = OkHttpClient().newBuilder()
                 .addNetworkInterceptor(interceptor)
                 .build()
+            // HTTP요청 Logging용 클라이언트 선언 끝
 
             val retrofit: Retrofit = Retrofit.Builder()
                 .baseUrl(Constants.BASE_URL)
@@ -183,15 +193,46 @@ class MainActivity : AppCompatActivity() {
 
             val service: WeatherService = retrofit.create(WeatherService::class.java)
 
-            Log.d("api_key", Constants.OPENAPI_API_KEY)
+            val ultraSrtNcstCall: Call<WeatherResponse> = service.getUltraSrtNcst(
+                Constants.OPENAPI_API_KEY,
+                1,
+                10,
+                "JSON",
+                "20230605",
+                "1400",
+                61,
+                125
+            )
 
-            val ultraSrtFcstCall: Call<WeatherResponse> = service.getUltraSrtNcst(
-                Constants.OPENAPI_API_KEY, 1, 10, "JSON", "20230605", "1400", 61, 125
+            val ultraSrtFcstCall: Call<WeatherResponse> = service.getUltraSrtFcst(
+                Constants.OPENAPI_API_KEY,
+                1,
+                60,
+                "JSON",
+                "20230605",
+                "1400",
+                61,
+                125
+            )
+
+            val vilageFcstCall: Call<WeatherResponse> = service.getVilageFcst(
+                Constants.OPENAPI_API_KEY,
+                1,
+                60,
+                "JSON",
+                "20230605",
+                "1400",
+                61,
+                125
             )
 
             showCustomProgressDialog()
 
-            ultraSrtFcstCall.enqueue(object : Callback<WeatherResponse> {
+            isCompletedCallUltraSrtNcst = false
+            isCompletedCallUltraSrtFcst = false
+            isCompletedCallVilageFcst = false
+
+            ultraSrtNcstCall.enqueue(object : Callback<WeatherResponse> {
                 override fun onResponse(
                     call: Call<WeatherResponse>,
                     response: Response<WeatherResponse>
@@ -201,8 +242,8 @@ class MainActivity : AppCompatActivity() {
 
                         val responseData: WeatherResponse? = response.body()
 
-                        var baseTime = responseData?.response?.body?.items?.item?.get(0)?.baseTime
-                        var baseDate = responseData?.response?.body?.items?.item?.get(0)?.baseDate
+                        val baseTime = responseData?.response?.body?.items?.item?.get(0)?.baseTime
+                        val baseDate = responseData?.response?.body?.items?.item?.get(0)?.baseDate
                         var pty: String? = null
                         var t1h: String? = null
                         var rn1: String? = null
@@ -243,6 +284,8 @@ class MainActivity : AppCompatActivity() {
                         )
                         editor.apply()
 
+                        isCompletedCallUltraSrtNcst = true
+
                         setupUI()
 
                         Log.i("Response Result", "$responseData")
@@ -260,6 +303,88 @@ class MainActivity : AppCompatActivity() {
                                 Log.e("Error.", "Generic Error")
 
                         }
+                    }
+                }
+
+                override fun onFailure(call: Call<WeatherResponse>, t: Throwable) {
+                    hideProgressDialog()
+                    Log.e("Errorrrrr.", t.message.toString())
+                }
+            })
+
+            ultraSrtFcstCall.enqueue(object : Callback<WeatherResponse> {
+                override fun onResponse(
+                    call: Call<WeatherResponse>,
+                    response: Response<WeatherResponse>
+                ) {
+                    if (response.isSuccessful) {
+                        val responseData = response.body()?.response?.body?.items?.item
+                        val ultraSrtFcst = LinkedHashMap<String, HashMap<String, String>>()
+
+                        responseData?.forEach {
+                            if (!ultraSrtFcst.containsKey(it.fcstTime)) {
+                                ultraSrtFcst[it.fcstTime!!] = HashMap()
+                            }
+
+                            ultraSrtFcst[it.fcstTime]?.put(it.category, it.fcstValue!!)
+                        }
+
+                        val ultraSrtFcstJSonString = Gson().toJson(ultraSrtFcst)
+
+                        Log.d("ultraSrtFcst: ", ultraSrtFcstJSonString)
+
+                        val editor = mSharedPreferences.edit()
+                        editor.putString(
+                            Constants.WEATHER_RESPONSE_DATA_ULTRA_FCST,
+                            ultraSrtFcstJSonString
+                        )
+                        editor.apply()
+
+                        isCompletedCallUltraSrtFcst = true
+
+                        setupUI()
+                    }
+                }
+
+                override fun onFailure(call: Call<WeatherResponse>, t: Throwable) {
+                    hideProgressDialog()
+                    Log.e("Errorrrrr.", t.message.toString())
+                }
+            })
+
+            vilageFcstCall.enqueue(object : Callback<WeatherResponse> {
+                override fun onResponse(
+                    call: Call<WeatherResponse>,
+                    response: Response<WeatherResponse>
+                ) {
+                    if (response.isSuccessful) {
+                        val responseData = response.body()?.response?.body?.items?.item
+                        val VilageFcst = LinkedHashMap<String, HashMap<String, String>>()
+
+                        responseData?.forEach {
+                            val key = it.fcstDate + it.fcstTime
+
+                            if (!VilageFcst.containsKey(key)) {
+                                VilageFcst[key] = HashMap()
+                            }
+
+                            VilageFcst[key]?.put(it.category, it.fcstValue!!)
+                        }
+
+                        val vilageFcstJSonString = Gson().toJson(VilageFcst)
+
+                        Log.d("vilageFcst: ", vilageFcstJSonString)
+
+                        val editor = mSharedPreferences.edit()
+                        editor.putString(
+                            Constants.WEATHER_RESPONSE_DATA_VILAGE_FCST,
+                            vilageFcstJSonString
+                        )
+                        editor.apply()
+
+                        isCompletedCallVilageFcst = true
+
+                        setupUI()
                     }
                 }
 
@@ -311,16 +436,21 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("SetTextI18n")
     private fun setupUI() {
 
-        val ultraSrtNcstJsonString =
-            mSharedPreferences.getString(Constants.WEATHER_RESPONSE_DATA_ULTRA_NCST, "")
+        if (isCompletedCallUltraSrtNcst &&
+            isCompletedCallUltraSrtFcst &&
+            isCompletedCallVilageFcst
+        ) {
 
-        if (!ultraSrtNcstJsonString.isNullOrEmpty()) {
-            val ultraSrtNcst =
-                Gson().fromJson(ultraSrtNcstJsonString, UltraSrtNcst::class.java)
+            val ultraSrtNcstJsonString =
+                mSharedPreferences.getString(Constants.WEATHER_RESPONSE_DATA_ULTRA_NCST, "")
 
-            binding?.tvTemp?.text = ultraSrtNcst.t1h + getUnit()
-            binding?.tvHumidity?.text = ultraSrtNcst.reh + " %"
-            binding?.tvPrecipitation?.text = ultraSrtNcst.rn1 + "mm"
+            if (!ultraSrtNcstJsonString.isNullOrEmpty()) {
+                val ultraSrtNcst =
+                    Gson().fromJson(ultraSrtNcstJsonString, UltraSrtNcst::class.java)
+
+                binding?.tvTemp?.text = ultraSrtNcst.t1h + getUnit()
+                binding?.tvHumidity?.text = ultraSrtNcst.reh + " %"
+                binding?.tvPrecipitation?.text = ultraSrtNcst.rn1 + "mm"
 //
 //                when (weatherList.weather[i].icon) {
 //                    "01d" -> binding?.ivMain?.setImageResource(R.drawable.sunny)
@@ -339,6 +469,7 @@ class MainActivity : AppCompatActivity() {
 //                    "13n" -> binding?.ivMain?.setImageResource(R.drawable.snowflake)
 //                }
 
+            }
         }
     }
 
