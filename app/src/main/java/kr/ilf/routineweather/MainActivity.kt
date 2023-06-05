@@ -34,6 +34,7 @@ import com.karumi.dexter.listener.PermissionRequest
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener
 import kr.ilf.routineweather.databinding.ActivityMainBinding
 import kr.ilf.routineweather.model.UltraSrtNcst
+import kr.ilf.routineweather.model.VilageFcst
 import kr.ilf.routineweather.model.WeatherResponse
 import kr.ilf.routineweather.network.WeatherService
 import okhttp3.OkHttpClient
@@ -324,6 +325,8 @@ class MainActivity : AppCompatActivity() {
                         responseData?.forEach {
                             if (!ultraSrtFcst.containsKey(it.fcstTime)) {
                                 ultraSrtFcst[it.fcstTime!!] = HashMap()
+                                ultraSrtFcst[it.fcstTime]?.put("fcstDate",it.fcstDate!!)
+                                ultraSrtFcst[it.fcstTime]?.put("fcstTime",it.fcstTime!!)
                             }
 
                             ultraSrtFcst[it.fcstTime]?.put(it.category, it.fcstValue!!)
@@ -366,6 +369,8 @@ class MainActivity : AppCompatActivity() {
 
                             if (!VilageFcst.containsKey(key)) {
                                 VilageFcst[key] = HashMap()
+                                VilageFcst[key]?.put("fcstDate",it.fcstDate!!)
+                                VilageFcst[key]?.put("fcstTime",it.fcstTime!!)
                             }
 
                             VilageFcst[key]?.put(it.category, it.fcstValue!!)
