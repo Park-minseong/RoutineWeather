@@ -33,8 +33,8 @@ import com.karumi.dexter.PermissionToken
 import com.karumi.dexter.listener.PermissionRequest
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener
 import kr.ilf.routineweather.databinding.ActivityMainBinding
+import kr.ilf.routineweather.model.UltraSrtFcst
 import kr.ilf.routineweather.model.UltraSrtNcst
-import kr.ilf.routineweather.model.VilageFcst
 import kr.ilf.routineweather.model.WeatherResponse
 import kr.ilf.routineweather.network.WeatherService
 import okhttp3.OkHttpClient
@@ -45,6 +45,9 @@ import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.text.SimpleDateFormat
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
@@ -57,6 +60,11 @@ class MainActivity : AppCompatActivity() {
     private var isCompletedCallUltraSrtNcst = true
     private var isCompletedCallUltraSrtFcst = true
     private var isCompletedCallVilageFcst = true
+
+    private var ultraSrtNcstBaseTime = "0000"
+    private var ultraSrtFcstBaseTime = "0030"
+    private var vilageFcstBaseTime = "0000"
+    private var currentDate = "000000"
 
     private var binding: ActivityMainBinding? = null
 
@@ -74,8 +82,6 @@ class MainActivity : AppCompatActivity() {
         mSharedPreferences = getSharedPreferences(Constants.PREFERENCE_NAME, Context.MODE_PRIVATE)
 
         showCustomProgressDialog()
-
-        setupUI()
 
         isCompletedCallUltraSrtNcst = false
         isCompletedCallUltraSrtFcst = false
@@ -139,6 +145,8 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("MissingPermission")
     private fun requestLocationData() {
+        showCustomProgressDialog()
+
         val mLocationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 0)
             .setMaxUpdates(1)
             .build()
@@ -194,13 +202,22 @@ class MainActivity : AppCompatActivity() {
 
             val service: WeatherService = retrofit.create(WeatherService::class.java)
 
+            ultraSrtNcstBaseTime = getBaseTime("ultraSrtNcst")
+            Log.d("baseTime", ultraSrtNcstBaseTime)
+            ultraSrtFcstBaseTime = getBaseTime("ultraSrtFcst")
+            Log.d("baseTime", ultraSrtFcstBaseTime)
+            vilageFcstBaseTime = getBaseTime("vilageFcst")
+            Log.d("baseTime", vilageFcstBaseTime)
+
+            currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"))
+
             val ultraSrtNcstCall: Call<WeatherResponse> = service.getUltraSrtNcst(
                 Constants.OPENAPI_API_KEY,
                 1,
                 10,
                 "JSON",
-                "20230605",
-                "1400",
+                currentDate,
+                ultraSrtNcstBaseTime,
                 61,
                 125
             )
@@ -210,8 +227,8 @@ class MainActivity : AppCompatActivity() {
                 1,
                 60,
                 "JSON",
-                "20230605",
-                "1400",
+                currentDate,
+                ultraSrtFcstBaseTime,
                 61,
                 125
             )
@@ -221,13 +238,11 @@ class MainActivity : AppCompatActivity() {
                 1,
                 60,
                 "JSON",
-                "20230605",
-                "1400",
+                currentDate,
+                vilageFcstBaseTime,
                 61,
                 125
             )
-
-            showCustomProgressDialog()
 
             isCompletedCallUltraSrtNcst = false
             isCompletedCallUltraSrtFcst = false
@@ -325,8 +340,8 @@ class MainActivity : AppCompatActivity() {
                         responseData?.forEach {
                             if (!ultraSrtFcst.containsKey(it.fcstTime)) {
                                 ultraSrtFcst[it.fcstTime!!] = HashMap()
-                                ultraSrtFcst[it.fcstTime]?.put("fcstDate",it.fcstDate!!)
-                                ultraSrtFcst[it.fcstTime]?.put("fcstTime",it.fcstTime!!)
+                                ultraSrtFcst[it.fcstTime]?.put("fcstDate", it.fcstDate!!)
+                                ultraSrtFcst[it.fcstTime]?.put("fcstTime", it.fcstTime!!)
                             }
 
                             ultraSrtFcst[it.fcstTime]?.put(it.category, it.fcstValue!!)
@@ -369,8 +384,8 @@ class MainActivity : AppCompatActivity() {
 
                             if (!VilageFcst.containsKey(key)) {
                                 VilageFcst[key] = HashMap()
-                                VilageFcst[key]?.put("fcstDate",it.fcstDate!!)
-                                VilageFcst[key]?.put("fcstTime",it.fcstTime!!)
+                                VilageFcst[key]?.put("fcstDate", it.fcstDate!!)
+                                VilageFcst[key]?.put("fcstTime", it.fcstTime!!)
                             }
 
                             VilageFcst[key]?.put(it.category, it.fcstValue!!)
@@ -438,7 +453,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    @SuppressLint("SetTextI18n")
+    @SuppressLint("SetTextI18n", "UseCompatLoadingForDrawables")
     private fun setupUI() {
 
         if (isCompletedCallUltraSrtNcst &&
@@ -449,13 +464,69 @@ class MainActivity : AppCompatActivity() {
             val ultraSrtNcstJsonString =
                 mSharedPreferences.getString(Constants.WEATHER_RESPONSE_DATA_ULTRA_NCST, "")
 
-            if (!ultraSrtNcstJsonString.isNullOrEmpty()) {
-                val ultraSrtNcst =
-                    Gson().fromJson(ultraSrtNcstJsonString, UltraSrtNcst::class.java)
+            val ultraSrtFcstJsonString =
+                mSharedPreferences.getString(Constants.WEATHER_RESPONSE_DATA_ULTRA_FCST, "")
 
-                binding?.tvTemp?.text = ultraSrtNcst.t1h + getUnit()
-                binding?.tvHumidity?.text = ultraSrtNcst.reh + " %"
-                binding?.tvPrecipitation?.text = ultraSrtNcst.rn1 + "mm"
+            val vilageFcstJsonString =
+                mSharedPreferences.getString(Constants.WEATHER_RESPONSE_DATA_VILAGE_FCST, "")
+
+            val ultraSrtNcst = Gson().fromJson(ultraSrtNcstJsonString, UltraSrtNcst::class.java)
+            val ultraSrtFcstsMap =
+                Gson().fromJson(
+                    ultraSrtFcstJsonString,
+                    LinkedHashMap<String, Map<String, String>>()::class.java
+                )
+            val vilageFcsts =
+                Gson().fromJson(
+                    vilageFcstJsonString, LinkedHashMap<String, String>()::class.java
+                )
+
+            var count = 0
+
+            var weatherCode: String? = null
+
+            val ultraSrtFcsts = ArrayList<UltraSrtFcst>()
+
+            ultraSrtFcstsMap.forEach { (key, ultraSrtFcstMap) ->
+                if (count == 0) {
+                    when (ultraSrtNcst.pty) {
+                        "1", "4", "5" -> {
+                            binding?.ivMain?.setImageDrawable(getDrawable(R.drawable.rain))
+                        }
+
+                        "2", "3", "6", "7" -> {
+                            binding?.ivMain?.setImageDrawable(getDrawable(R.drawable.snowflake))
+                        }
+
+                        else -> {
+                            if (ultraSrtFcstMap["SKY"] == "4") {
+                                binding?.ivMain?.setImageDrawable(getDrawable(R.drawable.cloud))
+                            } else {
+                                binding?.ivMain?.setImageDrawable(getDrawable(R.drawable.sunny))
+                            }
+                        }
+                    }
+                    ++count
+                }
+
+                val ultraSrtFcst = UltraSrtFcst(
+                    null,
+                    null,
+                    ultraSrtFcstMap["fcstTime"]!!,
+                    ultraSrtFcstMap["fcstDate"]!!,
+                    ultraSrtFcstMap["PTY"]!!,
+                    ultraSrtFcstMap["T1H"]!!,
+                    ultraSrtFcstMap["SKY"]!!
+                )
+
+                ultraSrtFcsts.add(ultraSrtFcst)
+            }
+
+            binding?.rvSrtFcst?.adapter = SrtFcstAdapter(this, ultraSrtFcsts)
+
+            binding?.tvTemp?.text = ultraSrtNcst.t1h + " °C"
+            binding?.tvHumidity?.text = ultraSrtNcst.reh + " %"
+            binding?.tvPrecipitation?.text = ultraSrtNcst.rn1 + "mm"
 //
 //                when (weatherList.weather[i].icon) {
 //                    "01d" -> binding?.ivMain?.setImageResource(R.drawable.sunny)
@@ -474,7 +545,7 @@ class MainActivity : AppCompatActivity() {
 //                    "13n" -> binding?.ivMain?.setImageResource(R.drawable.snowflake)
 //                }
 
-            }
+
         }
     }
 
@@ -497,5 +568,70 @@ class MainActivity : AppCompatActivity() {
         sdf.timeZone = TimeZone.getDefault()
 
         return sdf.format(date)
+    }
+
+    private fun getBaseTime(apiType: String): String {
+
+        var currentHour = LocalDateTime.now().hour
+        val currentMinute = LocalDateTime.now().minute
+
+        Log.d("currentHour", currentHour.toString())
+
+
+        return when (apiType) {
+            "ultraSrtNcst" -> {
+                if (currentMinute <= 31) {
+                    currentHour--
+                    if (currentHour == -1) {
+                        return "2300"
+                    } else if (currentHour < 10) {
+                        return "0${currentHour}00"
+                    } else {
+                        return "${currentHour}00"
+                    }
+                } else {
+                    if (currentHour < 10) {
+                        return "0${currentHour}00"
+                    } else {
+                        return "${currentHour}00"
+                    }
+                }
+            }
+
+            "ultraSrtFcst" -> {
+                if (currentMinute <= 31) {
+                    currentHour--
+                    if (currentHour == -1) {
+                        return "2330"
+                    } else if (currentHour < 10) {
+                        return "0${currentHour}30"
+                    } else {
+                        return "${currentHour}30"
+                    }
+                } else {
+                    if (currentHour < 10) {
+                        return "0${currentHour}30"
+                    } else {
+                        return "${currentHour}30"
+                    }
+                }
+            }
+
+            "vilageFcst" -> {
+                when (currentHour) {
+                    in 2..4 -> "0200"
+                    in 5..7 -> "0500"
+                    in 8..10 -> "0800"
+                    in 11..13 -> "1100"
+                    in 14..16 -> "1400"
+                    in 17..19 -> "1700"
+                    in 20..22 -> "2000"
+                    else -> "2300"
+                }
+            }
+
+            else -> "0200"
+
+        }
     }
 }
