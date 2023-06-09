@@ -2,16 +2,11 @@ package kr.ilf.routineweather
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import kr.ilf.routineweather.databinding.ItemSrtFcstBinding
-import kr.ilf.routineweather.model.UltraSrtFcst
-import kr.ilf.routineweather.model.VilageFcst
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
+import kr.ilf.routineweather.model.weather.VilageFcst
 
 class TimeWeatherAdapter(
     private val context: Context,

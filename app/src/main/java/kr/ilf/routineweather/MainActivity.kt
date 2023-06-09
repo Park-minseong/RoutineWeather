@@ -32,11 +32,13 @@ import com.karumi.dexter.MultiplePermissionsReport
 import com.karumi.dexter.PermissionToken
 import com.karumi.dexter.listener.PermissionRequest
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener
+import kr.hyosang.coordinate.CoordPoint
+import kr.hyosang.coordinate.TransCoord
 import kr.ilf.routineweather.databinding.ActivityMainBinding
-import kr.ilf.routineweather.model.UltraSrtFcst
-import kr.ilf.routineweather.model.UltraSrtNcst
-import kr.ilf.routineweather.model.VilageFcst
-import kr.ilf.routineweather.model.WeatherResponse
+import kr.ilf.routineweather.model.weather.UltraSrtFcst
+import kr.ilf.routineweather.model.weather.UltraSrtNcst
+import kr.ilf.routineweather.model.weather.VilageFcst
+import kr.ilf.routineweather.model.weather.WeatherResponse
 import kr.ilf.routineweather.network.WeatherService
 import kr.ilf.routineweather.utils.TransLocalPoint
 import okhttp3.OkHttpClient
@@ -212,6 +214,13 @@ class MainActivity : AppCompatActivity() {
             val ny = gridGps.y.toInt()
             // 기상청 격자 좌표로 변환 끝
 
+            val pt = CoordPoint(longitude, latitude)
+            val transCoord =
+                TransCoord.getTransCoord(pt, TransCoord.COORD_TYPE_WGS84, TransCoord.COORD_TYPE_TM)
+
+            val tmX = transCoord.x
+            val tmY = transCoord.y
+
             val retrofit: Retrofit = Retrofit.Builder()
                 .baseUrl(Constants.BASE_URL)
                 .addConverterFactory(GsonConverterFactory.create())
@@ -226,6 +235,7 @@ class MainActivity : AppCompatActivity() {
 
             currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"))
 
+            // 초단기 실황 Call
             val ultraSrtNcstCall: Call<WeatherResponse> = service.getOpenApiWeather(
                 PATH_GET_ULTRA_SRT_NCST,
                 Constants.OPENAPI_API_KEY,
@@ -238,6 +248,7 @@ class MainActivity : AppCompatActivity() {
                 ny
             )
 
+            // 초단기 예보 Call
             val ultraSrtFcstCall: Call<WeatherResponse> = service.getOpenApiWeather(
                 PATH_GET_ULTRA_SRT_FCST,
                 Constants.OPENAPI_API_KEY,
@@ -250,6 +261,7 @@ class MainActivity : AppCompatActivity() {
                 ny
             )
 
+            // 단기 예보 Call
             val vilageFcstCall: Call<WeatherResponse> = service.getOpenApiWeather(
                 PATH_GET_VILAGE_FCST,
                 Constants.OPENAPI_API_KEY,
@@ -261,6 +273,8 @@ class MainActivity : AppCompatActivity() {
                 nx,
                 ny
             )
+
+            val
 
             isCompletedCallUltraSrtNcst = false
             isCompletedCallUltraSrtFcst = false
