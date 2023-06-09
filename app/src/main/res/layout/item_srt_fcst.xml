@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/ll_srt_fcst_item"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="@dimen/item_marginStartEnd"
+    android:layout_marginEnd="@dimen/item_marginStartEnd"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/tv_time"
+        tools:text="15시"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/card_view_marginTopBottom"
+        android:gravity="center"
+        android:textColor="@color/secondary_text_color"
+        android:textSize="@dimen/value_small_text_size" />
+
+    <ImageView
+        android:id="@+id/iv_main"
+        android:layout_width="@dimen/srt_fcst_image_size"
+        android:layout_height="@dimen/srt_fcst_image_size"
+        android:layout_gravity="center"
+        android:contentDescription="@string/image_contentDescription"
+        app:srcCompat="@drawable/humidity" />
+
+    <TextView
+        android:id="@+id/tv_temp"
+        android:layout_marginTop="@dimen/card_view_marginTopBottom"
+        tools:text="20º"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textStyle="bold"
+        android:textColor="@color/primary_text_color"
+        android:textSize="@dimen/value_text_size" />
+
+</LinearLayout>
