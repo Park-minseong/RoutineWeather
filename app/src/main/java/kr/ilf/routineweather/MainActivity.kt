@@ -314,7 +314,7 @@ class MainActivity : AppCompatActivity() {
                 requestCount++
 
 
-                    Log.e("nearStationCall Request Errorrrrr.", t.message.toString())
+                Log.e("nearStationCall Request Errorrrrr.", t.message.toString())
 
 
             }
@@ -331,8 +331,18 @@ class MainActivity : AppCompatActivity() {
                 if (response.isSuccessful) {
                     val responseData = response.body()?.response?.body?.items!!
 
-                    Log.d("dust", responseData.toString())
+                    val dustItemsJsonString = Gson().toJson(responseData)
 
+                    Log.d("dustString", dustItemsJsonString)
+                    Log.d("dustString", responseData.toString())
+
+                    val editor = mSharedPreferences.edit()
+                    editor.putString(
+                        Constants.WEATHER_RESPONSE_DATA_DUST, dustItemsJsonString
+                    )
+                    editor.apply()
+
+                    setupUI()
                 }
             }
 
@@ -446,7 +456,10 @@ class MainActivity : AppCompatActivity() {
                     Log.e("ultraSrtFcstCall Request Errorrrrr.", t.message.toString())
                 }
 
-                Log.e("ultraSrtFcstCall Request Errorrrrr count $requestCount.", t.message.toString())
+                Log.e(
+                    "ultraSrtFcstCall Request Errorrrrr count $requestCount.",
+                    t.message.toString()
+                )
                 ultraSrtFcstCall.cancel()
                 ultraSrtFcstCall.enqueue(this)
             }
@@ -527,7 +540,10 @@ class MainActivity : AppCompatActivity() {
                     Log.e("ultraSrtNcstCall Request Errorrrrr.", t.message.toString())
                 }
 
-                Log.e("ultraSrtNcstCall Request Errorrrrr count $requestCount.", t.message.toString())
+                Log.e(
+                    "ultraSrtNcstCall Request Errorrrrr count $requestCount.",
+                    t.message.toString()
+                )
                 ultraSrtNcstCall.cancel()
                 ultraSrtNcstCall.enqueue(this)
             }
@@ -602,10 +618,26 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        val dustDataJsonString = mSharedPreferences.getString(Constants.WEATHER_RESPONSE_DATA_DUST, "")
+        val dustDataJsonString =
+            mSharedPreferences.getString(Constants.WEATHER_RESPONSE_DATA_DUST, "")
 
-        if (dustDataJsonString.isNullOrEmpty()) {
+        if (!dustDataJsonString.isNullOrEmpty()) {
+            val dustItems =
+                Gson().fromJson(dustDataJsonString, ArrayList<Map<String, String>>()::class.java)
 
+            dustItems.forEach {
+                if (it["pm10Flag"] == null && it["pm25Flag"] == null) {
+                    binding?.tvPm10?.text = it["pm10Value"]
+                    binding?.tvPm25?.text = it["pm25Value"]
+                    binding?.tvStation?.text = it["stationName"]
+                    binding?.tvDatetime?.text = it["dataTime"]!!.substring(5).replace("-", ".")
+
+                    binding?.tvPm10?.setTextColor(getDustColor(it["pm10Grade1h"]!!))
+                    binding?.tvPm25?.setTextColor(getDustColor(it["pm25Grade1h"]!!))
+
+                    return
+                }
+            }
         }
     }
 
@@ -763,6 +795,18 @@ class MainActivity : AppCompatActivity() {
         sdf.timeZone = TimeZone.getDefault()
 
         return sdf.format(date)
+    }
+
+    private fun getDustColor(grade: String): Int {
+        return getColor(
+            when (grade) {
+                "1" -> R.color.dust_good
+                "2" -> R.color.dust_normal
+                "3" -> R.color.dust_bad
+                "4" -> R.color.dust_very_bad
+                else -> R.color.primary_text_color
+            }
+        )
     }
 
     private fun getBaseTime(apiType: String): String {

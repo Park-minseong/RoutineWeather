@@ -9,6 +9,6 @@ data class DustItem(
     val pm25Flag: String,
     val stationName: String,
     val stationCode: String,
-    val dateTime: String
+    val dataTime: String
 
 )
