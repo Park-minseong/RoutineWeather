@@ -355,8 +355,8 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 Log.e("dustDataCall Request Errorrrrr count $requestCount.", t.message.toString())
-                dustDataCall.cancel()
-                dustDataCall.enqueue(this)
+//                dustDataCall.cancel()
+//                dustDataCall.enqueue(this)
             }
         })
     }
@@ -407,8 +407,8 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 Log.e("vilageFcstCall Request Errorrrrr count $requestCount.", t.message.toString())
-                vilageFcstCall.cancel()
-                vilageFcstCall.enqueue(this)
+//                vilageFcstCall.cancel()
+//                vilageFcstCall.enqueue(this)
             }
         })
     }
@@ -460,8 +460,8 @@ class MainActivity : AppCompatActivity() {
                     "ultraSrtFcstCall Request Errorrrrr count $requestCount.",
                     t.message.toString()
                 )
-                ultraSrtFcstCall.cancel()
-                ultraSrtFcstCall.enqueue(this)
+//                ultraSrtFcstCall.cancel()
+//                ultraSrtFcstCall.enqueue(this)
             }
         })
     }
@@ -544,8 +544,8 @@ class MainActivity : AppCompatActivity() {
                     "ultraSrtNcstCall Request Errorrrrr count $requestCount.",
                     t.message.toString()
                 )
-                ultraSrtNcstCall.cancel()
-                ultraSrtNcstCall.enqueue(this)
+//                ultraSrtNcstCall.cancel()
+//                ultraSrtNcstCall.enqueue(this)
             }
         })
     }
