@@ -15,6 +15,7 @@ object Constants {
     const val WEATHER_RESPONSE_DATA_ULTRA_FCST = "weather_response_data_ultra_fcst"
     const val WEATHER_RESPONSE_DATA_ULTRA_NCST = "weather_response_data_ultra_ncst"
     const val WEATHER_RESPONSE_DATA_VILAGE_FCST = "weather_response_data_vilage_fcst"
+    const val WEATHER_RESPONSE_DATA_DUST = "weather_response_data_dust"
 
     fun isNetworkAvailable(context: Context): Boolean {
         val connectivityManager =

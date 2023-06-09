@@ -1,5 +1,8 @@
 package kr.ilf.routineweather.network
 
+import kr.ilf.routineweather.model.dust.DustItem
+import kr.ilf.routineweather.model.dust.DustResponse
+import kr.ilf.routineweather.model.dust.StationItem
 import kr.ilf.routineweather.model.weather.WeatherResponse
 import retrofit2.Call
 import retrofit2.http.GET
@@ -34,20 +37,20 @@ interface WeatherService {
     @GET("B552584/ArpltnInforInqireSvc/getMsrstnAcctoRltmMesureDnsty")
     fun getMsrstnAcctoRltmMesureDnsty(
         @Query("serviceKey") serviceKey: String,
+        @Query("returnType") dataType: String,
         @Query("pageNo") pageNo: Int,
         @Query("numOfRows") numOfRows: Int,
-        @Query("returnType") dataType: String,
-        @Query("sidoName") sidoName: String,
-        @Query("ver") ver: String,
-    )
+        @Query("stationName") stationName: String,
+        @Query("dataTerm") dataTerm: String = "DAILY",
+        @Query("ver") ver: String = "1.4",
+    ):Call<DustResponse<DustItem>>
 
     // 대기오염 근접측정소 api
     @GET("B552584/MsrstnInfoInqireSvc/getNearbyMsrstnList")
     fun getNearbyMsrstnList(
         @Query("serviceKey") serviceKey: String,
-        @Query("returnType") returnType: Int,
-        @Query("tmX") tmX: Int,
-        @Query("tmY") tmY: String,
-        @Query("ver") ver: String,
-    )
+        @Query("returnType") returnType: String,
+        @Query("tmX") tmX: Double,
+        @Query("tmY") tmY: Double,
+    ):Call<DustResponse<StationItem>>
 }
