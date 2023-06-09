@@ -7,5 +7,10 @@
     <color name="primary_text_color">#363A43</color>
     <color name="secondary_text_color">#7A8089</color>
     <color name="divider_background">#e0e0e0</color>
+
+    <color name="dust_very_bad">#e64746</color>
+    <color name="dust_bad">#fda60d</color>
+    <color name="dust_normal">#03c73c</color>
+    <color name="dust_good">#30a2ff</color>
     <!--END-->
 </resources>
