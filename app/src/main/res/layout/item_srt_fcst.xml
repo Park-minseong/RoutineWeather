@@ -5,8 +5,8 @@
     android:id="@+id/ll_srt_fcst_item"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:layout_marginStart="@dimen/card_view_marginStartEnd"
-    android:layout_marginEnd="@dimen/card_view_marginStartEnd"
+    android:layout_marginStart="@dimen/item_marginStartEnd"
+    android:layout_marginEnd="@dimen/item_marginStartEnd"
     android:orientation="vertical">
 
     <TextView
@@ -22,8 +22,7 @@
     <ImageView
         android:id="@+id/iv_main"
         android:layout_width="@dimen/srt_fcst_image_size"
-        android:layout_height="39dp"
-
+        android:layout_height="@dimen/srt_fcst_image_size"
         android:layout_gravity="center"
         android:contentDescription="@string/image_contentDescription"
         app:srcCompat="@drawable/humidity" />

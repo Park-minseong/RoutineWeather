@@ -2,14 +2,24 @@ package kr.ilf.routineweather
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import kr.ilf.routineweather.databinding.ItemSrtFcstBinding
 import kr.ilf.routineweather.model.UltraSrtFcst
+import kr.ilf.routineweather.model.VilageFcst
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
-class SrtFcstAdapter(private val context: Context, private val items: ArrayList<UltraSrtFcst>) :
-    RecyclerView.Adapter<SrtFcstAdapter.ViewHolder>() {
+class TimeWeatherAdapter(
+    private val context: Context,
+    private val items: ArrayList<VilageFcst>
+) :
+    RecyclerView.Adapter<TimeWeatherAdapter.ViewHolder>() {
+
+    private var preFcstTime = "0000"
 
     class ViewHolder(binding: ItemSrtFcstBinding) : RecyclerView.ViewHolder(binding.root) {
         val ivMain = binding.ivMain
@@ -33,21 +43,25 @@ class SrtFcstAdapter(private val context: Context, private val items: ArrayList<
 
     @SuppressLint("UseCompatLoadingForDrawables")
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val ultraSrtFcst = items[position]
-        val temp = ultraSrtFcst.t1h + "°"
-        val time = ultraSrtFcst.fcstTime.substring(0, 2) + "시"
-        val sky = ultraSrtFcst.sky
-        val pty = ultraSrtFcst.pty
+        val item = items[position]
 
-        val iconCode = sky + pty
+        val time = item.fcstTime
+        val hour =
+            if (time.substring(0, 2) == "00") getDate(item.fcstDate) else time.substring(0, 2) + "시"
+        val temp = item.tmp + "°"
+        val sky = item.sky
+        val pty = item.pty
 
-        holder.tv_time.text = time
+        holder.tv_time.text = hour
         holder.tv_temp.text = temp
+
+        preFcstTime = item.fcstTime
 
         when (pty) {
             "1", "4", "5" -> {
                 holder.ivMain.setImageDrawable(context.getDrawable(R.drawable.rain))
             }
+
             "2", "3", "6", "7" -> {
                 holder.ivMain.setImageDrawable(context.getDrawable(R.drawable.snowflake))
             }
@@ -59,8 +73,17 @@ class SrtFcstAdapter(private val context: Context, private val items: ArrayList<
                     holder.ivMain.setImageDrawable(context.getDrawable(R.drawable.sunny))
                 }
             }
+
         }
-
-
     }
+
+    private fun getDate(fcstDate: String): String {
+        val monthDay = fcstDate.substring(4)
+
+        val month = monthDay.substring(0, 2).toInt()
+        val day = monthDay.substring(2).toInt()
+
+        return "$month.$day"
+    }
+
 }
