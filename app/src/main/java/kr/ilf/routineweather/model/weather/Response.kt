@@ -2,7 +2,7 @@ package kr.ilf.routineweather.model.weather
 
 import java.io.Serializable
 
-data class Response(
+data class Response<T>(
     val header: ResponseHeader,
-    val body: ResponseBody?
+    val body: ResponseBody<T>?
 ) :Serializable

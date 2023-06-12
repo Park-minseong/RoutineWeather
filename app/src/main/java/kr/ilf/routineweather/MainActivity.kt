@@ -7,6 +7,7 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.location.Geocoder
 import android.location.Location
 import android.location.LocationManager
 import android.net.Uri
@@ -20,6 +21,7 @@ import android.view.MenuItem
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.GridLayoutManager
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
@@ -38,6 +40,10 @@ import kr.ilf.routineweather.databinding.ActivityMainBinding
 import kr.ilf.routineweather.model.dust.DustItem
 import kr.ilf.routineweather.model.dust.DustResponse
 import kr.ilf.routineweather.model.dust.StationItem
+import kr.ilf.routineweather.model.weather.MidLandItem
+import kr.ilf.routineweather.model.weather.MidTaItem
+import kr.ilf.routineweather.model.weather.MidTa
+import kr.ilf.routineweather.model.weather.SrtItem
 import kr.ilf.routineweather.model.weather.UltraSrtFcst
 import kr.ilf.routineweather.model.weather.UltraSrtNcst
 import kr.ilf.routineweather.model.weather.VilageFcst
@@ -74,6 +80,8 @@ class MainActivity : AppCompatActivity() {
     private var isCompletedCallUltraSrtNcst = true
     private var isCompletedCallUltraSrtFcst = true
     private var isCompletedCallVilageFcst = true
+    private var isCompletedCallMidTa = true
+    private var isCompletedCallMidLand = true
 
     private var ultraSrtNcstBaseTime = "0000"
     private var ultraSrtFcstBaseTime = "0030"
@@ -97,11 +105,13 @@ class MainActivity : AppCompatActivity() {
 
         showCustomProgressDialog()
 
-        setupUI()
+        setupSrtUI()
 
         isCompletedCallUltraSrtNcst = false
         isCompletedCallUltraSrtFcst = false
         isCompletedCallVilageFcst = false
+        isCompletedCallMidTa = false
+        isCompletedCallMidLand = false
 
         if (!isLocationEnabled()) {
             Toast.makeText(
@@ -234,7 +244,7 @@ class MainActivity : AppCompatActivity() {
             currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"))
 
             // 초단기 실황 Call
-            val ultraSrtNcstCall: Call<WeatherResponse> = weatherService.getOpenApiWeather(
+            val ultraSrtNcstCall: Call<WeatherResponse<SrtItem>> = weatherService.getOpenApiWeather(
                 PATH_GET_ULTRA_SRT_NCST,
                 Constants.OPENAPI_API_KEY,
                 1,
@@ -247,7 +257,7 @@ class MainActivity : AppCompatActivity() {
             )
 
             // 초단기 예보 Call
-            val ultraSrtFcstCall: Call<WeatherResponse> = weatherService.getOpenApiWeather(
+            val ultraSrtFcstCall: Call<WeatherResponse<SrtItem>> = weatherService.getOpenApiWeather(
                 PATH_GET_ULTRA_SRT_FCST,
                 Constants.OPENAPI_API_KEY,
                 1,
@@ -260,7 +270,7 @@ class MainActivity : AppCompatActivity() {
             )
 
             // 단기 예보 Call
-            val vilageFcstCall: Call<WeatherResponse> = weatherService.getOpenApiWeather(
+            val vilageFcstCall: Call<WeatherResponse<SrtItem>> = weatherService.getOpenApiWeather(
                 PATH_GET_VILAGE_FCST,
                 Constants.OPENAPI_API_KEY,
                 1,
@@ -276,8 +286,6 @@ class MainActivity : AppCompatActivity() {
             val nearStationCall: Call<DustResponse<StationItem>> =
                 weatherService.getNearbyMsrstnList(Constants.OPENAPI_API_KEY, "json", tmX, tmY)
 
-
-
             isCompletedCallUltraSrtNcst = false
             isCompletedCallUltraSrtFcst = false
             isCompletedCallVilageFcst = false
@@ -287,7 +295,168 @@ class MainActivity : AppCompatActivity() {
             enqueueVilageNcstCall(vilageFcstCall)
             enqueueNearStationCall(nearStationCall)
 
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                Geocoder(this, Locale.KOREA).getFromLocation(latitude, longitude, 1) {
+                    val adminArea = it[0].adminArea
+                    val locality = it[0].locality
+
+                    val midTaItemCall: Call<WeatherResponse<MidTaItem>> =
+                        getMidTaItemCall(adminArea, locality)
+
+                    val midLandItemCall: Call<WeatherResponse<MidLandItem>> =
+                        getMidLandItemCall(adminArea, locality)
+
+                    enqueueMidTaCall(midTaItemCall)
+                    enqueueMidLandCall(midLandItemCall)
+                }
+            } else {
+                val addresses = Geocoder(this, Locale.KOREA).getFromLocation(latitude, longitude, 1)
+
+                val adminArea = addresses?.get(0)?.adminArea
+                val locality = addresses?.get(0)?.locality
+
+                // 중기 기온조회 Call
+                val midTaItemCall: Call<WeatherResponse<MidTaItem>> =
+                    getMidTaItemCall(adminArea, locality)
+
+                enqueueMidTaCall(midTaItemCall)
+            }
+
         }
+    }
+
+    private fun getMidTaItemCall(
+        adminArea: String?, locality: String?
+    ): Call<WeatherResponse<MidTaItem>> {
+        var midTaRefId: String? = null
+
+        Constants.midTaRefIds.forEach { (key, value) ->
+            if (adminArea!!.contains(key)) {
+                midTaRefId = value
+            }
+        }
+
+        if (midTaRefId == null) Constants.midTaRefIds.forEach { (key, value) ->
+            if (locality!!.contains(key)) {
+                midTaRefId = value
+            }
+        }
+
+        // 중기 기온조회 Call
+        return weatherService.getMidTa(regId = midTaRefId!!, tmFc = currentDate + "0600")
+    }
+
+    private fun getMidLandItemCall(
+        adminArea: String?, locality: String?
+    ): Call<WeatherResponse<MidLandItem>> {
+        var midLandRefId: String? = null
+
+        if (adminArea!!.contains("강원")) {
+            run {
+                Constants.yeongDong.forEach {
+                    if (locality!!.contains(it)) {
+                        midLandRefId = Constants.midLandRefIds["강원도영동"]
+
+                        return@run
+                    } else {
+                        midLandRefId = Constants.midLandRefIds["강원도영서"]
+                    }
+                }
+            }
+        } else {
+
+            Constants.midLandRefIds.forEach { (key, value) ->
+                if (adminArea.contains(key)) {
+                    midLandRefId = value
+                }
+            }
+
+            if (midLandRefId == null) Constants.midLandRefIds.forEach { (key, value) ->
+                if (locality!!.contains(key)) {
+                    midLandRefId = value
+                }
+            }
+        }
+
+        // 중기 육상예보조회 Call
+        return weatherService.getMidLandFcst(regId = midLandRefId!!, tmFc = currentDate + "0600")
+    }
+
+    private fun enqueueMidTaCall(midTaItemCall: Call<WeatherResponse<MidTaItem>>) {
+        var requestCount = 0
+
+        midTaItemCall.enqueue((object : Callback<WeatherResponse<MidTaItem>> {
+            override fun onResponse(
+                call: Call<WeatherResponse<MidTaItem>>,
+                response: Response<WeatherResponse<MidTaItem>>
+            ) {
+                if (response.isSuccessful) {
+                    val responseData = response.body()?.response?.body?.items?.item!![0]
+
+                    val taItemJsonString = Gson().toJson(responseData)
+
+                    mSharedPreferences.edit()
+                        .putString(Constants.WEATHER_RESPONSE_DATA_MID_TA, taItemJsonString).apply()
+
+                    isCompletedCallMidTa = true
+
+                    setupMidUI()
+                }
+            }
+
+            override fun onFailure(call: Call<WeatherResponse<MidTaItem>>, t: Throwable) {
+                requestCount++
+
+                if (requestCount > 2) {
+                    hideProgressDialog()
+                    Log.e("midTaCall Request Errorrrrr.", t.message.toString())
+                }
+
+                Log.e("midTaCall Request Errorrrrr count $requestCount.", t.message.toString())
+                midTaItemCall.cancel()
+                midTaItemCall.clone().enqueue(this)
+            }
+        }))
+    }
+
+    private fun enqueueMidLandCall(midLandItemCall: Call<WeatherResponse<MidLandItem>>) {
+        var requestCount = 0
+
+        midLandItemCall.enqueue((object : Callback<WeatherResponse<MidLandItem>> {
+            override fun onResponse(
+                call: Call<WeatherResponse<MidLandItem>>,
+                response: Response<WeatherResponse<MidLandItem>>
+            ) {
+                if (response.isSuccessful) {
+                    val responseData = response.body()?.response?.body?.items?.item!![0]
+
+                    val landItemJsonString = Gson().toJson(responseData)
+
+                    mSharedPreferences.edit()
+                        .putString(Constants.WEATHER_RESPONSE_DATA_MID_LAND, landItemJsonString)
+                        .apply()
+
+                    isCompletedCallMidLand = true
+
+                    setupMidUI()
+                }
+            }
+
+            override fun onFailure(call: Call<WeatherResponse<MidLandItem>>, t: Throwable) {
+                requestCount++
+
+                if (requestCount > 2) {
+                    hideProgressDialog()
+                    Log.e("midLandItemCall Request Errorrrrr.", t.message.toString())
+                }
+
+                Log.e(
+                    "midLandItemCall Request Errorrrrr count $requestCount.", t.message.toString()
+                )
+                midLandItemCall.cancel()
+                midLandItemCall.clone().enqueue(this)
+            }
+        }))
     }
 
     private fun enqueueNearStationCall(nearStationCall: Call<DustResponse<StationItem>>) {
@@ -313,9 +482,7 @@ class MainActivity : AppCompatActivity() {
             override fun onFailure(call: Call<DustResponse<StationItem>>, t: Throwable) {
                 requestCount++
 
-
                 Log.e("nearStationCall Request Errorrrrr.", t.message.toString())
-
 
             }
         })
@@ -333,16 +500,13 @@ class MainActivity : AppCompatActivity() {
 
                     val dustItemsJsonString = Gson().toJson(responseData)
 
-                    Log.d("dustString", dustItemsJsonString)
-                    Log.d("dustString", responseData.toString())
-
                     val editor = mSharedPreferences.edit()
                     editor.putString(
                         Constants.WEATHER_RESPONSE_DATA_DUST, dustItemsJsonString
                     )
                     editor.apply()
 
-                    setupUI()
+                    setupDustUI()
                 }
             }
 
@@ -355,18 +519,18 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 Log.e("dustDataCall Request Errorrrrr count $requestCount.", t.message.toString())
-//                dustDataCall.cancel()
-//                dustDataCall.enqueue(this)
+                dustDataCall.cancel()
+                dustDataCall.clone().enqueue(this)
             }
         })
     }
 
-    private fun enqueueVilageNcstCall(vilageFcstCall: Call<WeatherResponse>) {
+    private fun enqueueVilageNcstCall(vilageFcstCall: Call<WeatherResponse<SrtItem>>) {
         var requestCount = 0
 
-        vilageFcstCall.enqueue(object : Callback<WeatherResponse> {
+        vilageFcstCall.enqueue(object : Callback<WeatherResponse<SrtItem>> {
             override fun onResponse(
-                call: Call<WeatherResponse>, response: Response<WeatherResponse>
+                call: Call<WeatherResponse<SrtItem>>, response: Response<WeatherResponse<SrtItem>>
             ) {
                 if (response.isSuccessful) {
                     val responseData = response.body()?.response?.body?.items?.item
@@ -394,11 +558,11 @@ class MainActivity : AppCompatActivity() {
 
                     isCompletedCallVilageFcst = true
 
-                    setupUI()
+                    setupSrtUI()
                 }
             }
 
-            override fun onFailure(call: Call<WeatherResponse>, t: Throwable) {
+            override fun onFailure(call: Call<WeatherResponse<SrtItem>>, t: Throwable) {
                 requestCount++
 
                 if (requestCount > 2) {
@@ -407,18 +571,18 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 Log.e("vilageFcstCall Request Errorrrrr count $requestCount.", t.message.toString())
-//                vilageFcstCall.cancel()
-//                vilageFcstCall.enqueue(this)
+                vilageFcstCall.cancel()
+                vilageFcstCall.clone().enqueue(this)
             }
         })
     }
 
-    private fun enqueueUltraSrtFcstCall(ultraSrtFcstCall: Call<WeatherResponse>) {
+    private fun enqueueUltraSrtFcstCall(ultraSrtFcstCall: Call<WeatherResponse<SrtItem>>) {
         var requestCount = 0
 
-        ultraSrtFcstCall.enqueue(object : Callback<WeatherResponse> {
+        ultraSrtFcstCall.enqueue(object : Callback<WeatherResponse<SrtItem>> {
             override fun onResponse(
-                call: Call<WeatherResponse>, response: Response<WeatherResponse>
+                call: Call<WeatherResponse<SrtItem>>, response: Response<WeatherResponse<SrtItem>>
             ) {
                 if (response.isSuccessful) {
                     val responseData = response.body()?.response?.body?.items?.item
@@ -444,11 +608,11 @@ class MainActivity : AppCompatActivity() {
 
                     isCompletedCallUltraSrtFcst = true
 
-                    setupUI()
+                    setupSrtUI()
                 }
             }
 
-            override fun onFailure(call: Call<WeatherResponse>, t: Throwable) {
+            override fun onFailure(call: Call<WeatherResponse<SrtItem>>, t: Throwable) {
                 requestCount++
 
                 if (requestCount > 2) {
@@ -457,24 +621,23 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 Log.e(
-                    "ultraSrtFcstCall Request Errorrrrr count $requestCount.",
-                    t.message.toString()
+                    "ultraSrtFcstCall Request Errorrrrr count $requestCount.", t.message.toString()
                 )
-//                ultraSrtFcstCall.cancel()
-//                ultraSrtFcstCall.enqueue(this)
+                ultraSrtFcstCall.cancel()
+                ultraSrtFcstCall.clone().enqueue(this)
             }
         })
     }
 
-    private fun enqueueUltraSrtNcstCall(ultraSrtNcstCall: Call<WeatherResponse>) {
+    private fun enqueueUltraSrtNcstCall(ultraSrtNcstCall: Call<WeatherResponse<SrtItem>>) {
         var requestCount = 0
 
-        ultraSrtNcstCall.enqueue(object : Callback<WeatherResponse> {
+        ultraSrtNcstCall.enqueue(object : Callback<WeatherResponse<SrtItem>> {
             override fun onResponse(
-                call: Call<WeatherResponse>, response: Response<WeatherResponse>
+                call: Call<WeatherResponse<SrtItem>>, response: Response<WeatherResponse<SrtItem>>
             ) {
                 if (response.isSuccessful) {
-                    val responseData: WeatherResponse? = response.body()
+                    val responseData: WeatherResponse<SrtItem>? = response.body()
 
                     val baseTime = responseData?.response?.body?.items?.item?.get(0)?.baseTime
                     val baseDate = responseData?.response?.body?.items?.item?.get(0)?.baseDate
@@ -516,7 +679,7 @@ class MainActivity : AppCompatActivity() {
 
                     isCompletedCallUltraSrtNcst = true
 
-                    setupUI()
+                    setupSrtUI()
 
                 } else {
                     val rc = response.code()
@@ -532,7 +695,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-            override fun onFailure(call: Call<WeatherResponse>, t: Throwable) {
+            override fun onFailure(call: Call<WeatherResponse<SrtItem>>, t: Throwable) {
                 requestCount++
 
                 if (requestCount > 2) {
@@ -541,11 +704,10 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 Log.e(
-                    "ultraSrtNcstCall Request Errorrrrr count $requestCount.",
-                    t.message.toString()
+                    "ultraSrtNcstCall Request Errorrrrr count $requestCount.", t.message.toString()
                 )
-//                ultraSrtNcstCall.cancel()
-//                ultraSrtNcstCall.enqueue(this)
+                ultraSrtNcstCall.cancel()
+                ultraSrtNcstCall.clone().enqueue(this)
             }
         })
     }
@@ -586,7 +748,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     @SuppressLint("SetTextI18n", "UseCompatLoadingForDrawables")
-    private fun setupUI() {
+    private fun setupSrtUI() {
 
         if (isCompletedCallUltraSrtNcst && isCompletedCallUltraSrtFcst && isCompletedCallVilageFcst) {
             val ultraSrtNcstJsonString =
@@ -617,7 +779,9 @@ class MainActivity : AppCompatActivity() {
                 return
             }
         }
+    }
 
+    private fun setupDustUI() {
         val dustDataJsonString =
             mSharedPreferences.getString(Constants.WEATHER_RESPONSE_DATA_DUST, "")
 
@@ -638,6 +802,58 @@ class MainActivity : AppCompatActivity() {
                     return
                 }
             }
+        }
+    }
+
+    private fun setupMidUI() {
+        val midTaItemJsonString =
+            mSharedPreferences.getString(Constants.WEATHER_RESPONSE_DATA_MID_TA, "")
+
+        val midLandItemJsonString =
+            mSharedPreferences.getString(Constants.WEATHER_RESPONSE_DATA_MID_LAND, "")
+
+        if (!midTaItemJsonString.isNullOrEmpty() && !midLandItemJsonString.isNullOrEmpty() && isCompletedCallMidTa && isCompletedCallMidLand) {
+            val midTaItem =
+                Gson().fromJson(midTaItemJsonString, LinkedHashMap<String, Int>()::class.java)
+
+            val midLandItem =
+                Gson().fromJson(midLandItemJsonString, LinkedHashMap<String, Any>()::class.java)
+
+            val midTas = ArrayList<MidTa>()
+
+            for (afterDate in 3..10) {
+                val taMin = midTaItem["taMin${afterDate}"]!!
+                val taMinLow = midTaItem["taMin${afterDate}Low"]!!
+                val taMinHigh = midTaItem["taMin${afterDate}High"]!!
+                val taMax = midTaItem["taMax$afterDate"]!!
+                val taMaxLow = midTaItem["taMax${afterDate}Low"]!!
+                val taMaxHigh = midTaItem["taMax${afterDate}High"]!!
+
+                val rnStAm = midLandItem["rnSt${afterDate}Am"]!! as Double
+                val rnStPm = midLandItem["rnSt${afterDate}Pm"]!! as Double
+
+                val wfAm = midLandItem["wf${afterDate}Am"]?.toString() ?: midLandItem["wf${afterDate}"]!!.toString()
+                val wfPm = midLandItem["wf${afterDate}Pm"]?.toString() ?: midLandItem["wf${afterDate}"]!!.toString()
+
+                val midTa = MidTa(
+                    afterDate,
+                    taMin,
+                    taMinLow,
+                    taMinHigh,
+                    taMax,
+                    taMaxLow,
+                    taMaxHigh,
+                    rnStAm.toInt(),
+                    rnStPm.toInt(),
+                    wfAm,
+                    wfPm
+                )
+
+                midTas.add(midTa)
+            }
+
+            binding?.rvMid?.adapter = MidWeatherAdapter(this, midTas)
+            binding?.rvMid?.layoutManager = GridLayoutManager(this, 2)
         }
     }
 
