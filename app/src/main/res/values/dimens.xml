@@ -20,7 +20,7 @@
     <dimen name="value_text_size">16sp</dimen>
     <dimen name="small_label_text_size">10sp</dimen>
     <dimen name="small_text_size">8sp</dimen>
-    <dimen name="small_text_margin">5sp</dimen>
+    <dimen name="small_text_margin">5dp</dimen>
     <dimen name="value_small_text_size">14sp</dimen>
     <dimen name="item_marginStartEnd">10dp</dimen>
     <dimen name="sunset_marginStart">10dp</dimen>

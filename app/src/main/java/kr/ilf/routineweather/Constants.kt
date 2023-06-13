@@ -44,13 +44,6 @@ object Constants {
 
     val weatherDescOpenApi: Map<String, String> = mapOf(
         "10" to "맑음",
-        "11" to "맑고 비",
-        "12" to "맑고 비/눈",
-        "13" to "맑고 눈",
-        "14" to "맑고 소나기",
-        "15" to "맑고 빗방울 떨어짐",
-        "16" to "맑고 빗방울과 눈날림",
-        "17" to "맑고 눈날림",
         "30" to "구름많음",
         "31" to "구름많고 비",
         "32" to "구름많고 비/눈",
@@ -68,6 +61,30 @@ object Constants {
         "46" to "흐리고 빗방울과 눈날림",
         "47" to "흐리고 눈날림"
     )
+
+
+    fun getDrawableIdWeather(weatherCode: String): Int {
+        return when (weatherCode) {
+            "10" -> R.drawable.sun_max_fill
+            "30" -> R.drawable.cloud_sun_fill
+            "31" -> R.drawable.cloud_sun_heavyrain_fill
+            "32" -> R.drawable.cloud_sun_snow_fill
+            "33" -> R.drawable.cloud_sun_snow_fill
+            "34" -> R.drawable.cloud_sun_rain_fill
+            "35" -> R.drawable.cloud_sun_heavyrain_fill
+            "36" -> R.drawable.cloud_sun_snow_fill
+            "37" -> R.drawable.cloud_sun_snow_fill
+            "40" -> R.drawable.cloud_fill
+            "41" -> R.drawable.cloud_heavyrain_fill
+            "42" -> R.drawable.cloud_sleet_fill
+            "43" -> R.drawable.cloud_snow_fill
+            "44" -> R.drawable.cloud_rain_fill
+            "45" -> R.drawable.cloud_drizzle_fill
+            "46" -> R.drawable.cloud_sleet_fill
+            "47" -> R.drawable.cloud_snow_fill
+            else -> R.drawable.sun_max_fill
+        }
+    }
 
     val weatherDescKo: Map<Int, String> = mapOf(
         201 to "가벼운 비를 동반한 천둥구름",
@@ -379,4 +396,5 @@ object Constants {
         "고성(장전)" to "11L10002",
         "평강" to "11L10003",
     )
+
 }

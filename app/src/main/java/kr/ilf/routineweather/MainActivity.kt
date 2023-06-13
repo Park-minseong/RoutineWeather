@@ -21,7 +21,7 @@ import android.view.MenuItem
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
@@ -41,8 +41,8 @@ import kr.ilf.routineweather.model.dust.DustItem
 import kr.ilf.routineweather.model.dust.DustResponse
 import kr.ilf.routineweather.model.dust.StationItem
 import kr.ilf.routineweather.model.weather.MidLandItem
-import kr.ilf.routineweather.model.weather.MidTaItem
 import kr.ilf.routineweather.model.weather.MidTa
+import kr.ilf.routineweather.model.weather.MidTaItem
 import kr.ilf.routineweather.model.weather.SrtItem
 import kr.ilf.routineweather.model.weather.UltraSrtFcst
 import kr.ilf.routineweather.model.weather.UltraSrtNcst
@@ -832,8 +832,10 @@ class MainActivity : AppCompatActivity() {
                 val rnStAm = midLandItem["rnSt${afterDate}Am"]!! as Double
                 val rnStPm = midLandItem["rnSt${afterDate}Pm"]!! as Double
 
-                val wfAm = midLandItem["wf${afterDate}Am"]?.toString() ?: midLandItem["wf${afterDate}"]!!.toString()
-                val wfPm = midLandItem["wf${afterDate}Pm"]?.toString() ?: midLandItem["wf${afterDate}"]!!.toString()
+                val wfAm = midLandItem["wf${afterDate}Am"]?.toString()
+                    ?: midLandItem["wf${afterDate}"]!!.toString()
+                val wfPm = midLandItem["wf${afterDate}Pm"]?.toString()
+                    ?: midLandItem["wf${afterDate}"]!!.toString()
 
                 val midTa = MidTa(
                     afterDate,
@@ -853,7 +855,8 @@ class MainActivity : AppCompatActivity() {
             }
 
             binding?.rvMid?.adapter = MidWeatherAdapter(this, midTas)
-            binding?.rvMid?.layoutManager = GridLayoutManager(this, 2)
+//            binding?.rvMid?.layoutManager = GridLayoutManager(this, 2)
+            binding?.rvMid?.layoutManager = LinearLayoutManager(this)
         }
     }
 
@@ -921,24 +924,10 @@ class MainActivity : AppCompatActivity() {
         var count = 0
 
         ultraSrtFcstsMap.forEach { (key, ultraSrtFcstMap) ->
+            val weatherCode = ultraSrtFcstMap["SKY"] + ultraSrtNcst.pty
+
             if (count == 0) {
-                when (ultraSrtNcst.pty) {
-                    "1", "4", "5" -> {
-                        binding?.ivMain?.setImageDrawable(getDrawable(R.drawable.rain))
-                    }
-
-                    "2", "3", "6", "7" -> {
-                        binding?.ivMain?.setImageDrawable(getDrawable(R.drawable.snowflake))
-                    }
-
-                    else -> {
-                        if (ultraSrtFcstMap["SKY"] == "4") {
-                            binding?.ivMain?.setImageDrawable(getDrawable(R.drawable.cloud))
-                        } else {
-                            binding?.ivMain?.setImageDrawable(getDrawable(R.drawable.sunny))
-                        }
-                    }
-                }
+                binding?.ivMain?.setImageDrawable(getDrawable(Constants.getDrawableIdWeather(weatherCode)))
 
                 binding?.tvMain?.text =
                     Constants.weatherDescOpenApi[ultraSrtFcstMap["SKY"] + ultraSrtNcst.pty]

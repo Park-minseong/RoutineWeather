@@ -46,30 +46,16 @@ class TimeWeatherAdapter(
         val temp = item.tmp + "°"
         val sky = item.sky
         val pty = item.pty
+        val weatherCode = sky + pty
 
         holder.tv_time.text = hour
         holder.tv_temp.text = temp
 
         preFcstTime = item.fcstTime
 
-        when (pty) {
-            "1", "4", "5" -> {
-                holder.ivMain.setImageDrawable(context.getDrawable(R.drawable.rain))
-            }
 
-            "2", "3", "6", "7" -> {
-                holder.ivMain.setImageDrawable(context.getDrawable(R.drawable.snowflake))
-            }
+        holder.ivMain.setImageDrawable(context.getDrawable(Constants.getDrawableIdWeather(weatherCode)))
 
-            else -> {
-                if (sky == "4") {
-                    holder.ivMain.setImageDrawable(context.getDrawable(R.drawable.cloud))
-                } else {
-                    holder.ivMain.setImageDrawable(context.getDrawable(R.drawable.sunny))
-                }
-            }
-
-        }
     }
 
     private fun getDate(fcstDate: String): String {
