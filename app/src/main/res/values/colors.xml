@@ -12,5 +12,7 @@
     <color name="dust_bad">#fda60d</color>
     <color name="dust_normal">#03c73c</color>
     <color name="dust_good">#30a2ff</color>
+
+    <color name="cloud">#E7E7E7</color>
     <!--END-->
 </resources>

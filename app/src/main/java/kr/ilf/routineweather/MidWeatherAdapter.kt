@@ -52,5 +52,11 @@ class MidWeatherAdapter(
         holder.tvRnStPm.text = "${items[position].rnStPm}%"
         holder.tvTempMax.text = items[position].taMax.toString() + "°"
         holder.tvTempMin.text = items[position].taMin.toString() + "°"
+
+        val wfAmCode = Constants.weatherCodeOpenApi[items[position].wfAm]!!
+        val wfPmCode = Constants.weatherCodeOpenApi[items[position].wfPm]!!
+
+        holder.ivMainAm.setImageDrawable(context.getDrawable(Constants.getDrawableIdWeather(wfAmCode)))
+        holder.ivMainPm.setImageDrawable(context.getDrawable(Constants.getDrawableIdWeather(wfPmCode)))
     }
 }

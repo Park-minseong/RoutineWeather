@@ -9,7 +9,7 @@ object Constants {
 
     const val OPENWEATHER_API_KEY = BuildConfig.OPENWEATHER_API_KEY
     const val OPENAPI_API_KEY = BuildConfig.OPENAPI_API_KEY
-    const val BASE_URL = "http://apis.data.go.kr/"
+    const val OPENAPI_BASE_URL = "http://apis.data.go.kr/"
     const val METRIC_UNIT = "metric"
     const val PREFERENCE_NAME = "WeatherAppPreference"
     const val WEATHER_RESPONSE_DATA_ULTRA_FCST = "weather_response_data_ultra_fcst"
@@ -18,6 +18,8 @@ object Constants {
     const val WEATHER_RESPONSE_DATA_DUST = "weather_response_data_dust"
     const val WEATHER_RESPONSE_DATA_MID_TA = "weather_response_data_mid_ta"
     const val WEATHER_RESPONSE_DATA_MID_LAND = "weather_response_data_mid_land"
+    const val WEATHER_REQUEST_DATETIME = "weather_request_datetime"
+    const val WEATHER_REQUEST_ADDRESS = "weather_request_address"
 
     fun isNetworkAvailable(context: Context): Boolean {
         val connectivityManager =
@@ -60,6 +62,26 @@ object Constants {
         "45" to "흐리고 빗방울 떨어짐",
         "46" to "흐리고 빗방울과 눈날림",
         "47" to "흐리고 눈날림"
+    )
+
+    val weatherCodeOpenApi: Map<String, String> = mapOf(
+        "맑음" to "10",
+        "구름많음" to "30",
+        "구름많고 비" to "31",
+        "구름많고 비/눈" to "32",
+        "구름많고 눈" to "33",
+        "구름많고 소나기" to "34",
+        "구름많고 빗방울 떨어짐" to "35",
+        "구름많고 빗방울과 눈날림" to "36",
+        "구름많고 눈날림" to "37",
+        "흐림" to "40",
+        "흐리고 비" to "41",
+        "흐리고 비/눈" to "42",
+        "흐리고 눈" to "43",
+        "흐리고 소나기" to "44",
+        "45" to "흐리고 빗방울 떨어짐",
+        "흐리고 빗방울과 눈날림" to "46",
+        "흐리고 눈날림" to "47",
     )
 
 
@@ -168,7 +190,7 @@ object Constants {
         "양양",
         "강릉",
         "동해",
-        "삼척" ,
+        "삼척",
         "태백"
     )
 
@@ -396,5 +418,4 @@ object Constants {
         "고성(장전)" to "11L10002",
         "평강" to "11L10003",
     )
-
 }
