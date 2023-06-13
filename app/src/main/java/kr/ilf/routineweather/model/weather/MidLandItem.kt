@@ -1,0 +1,35 @@
+package kr.ilf.routineweather.model.weather
+
+import java.io.Serializable
+
+data class MidLandItem(
+    val rnSt3Am: Int,
+    val rnSt3Pm: Int,
+    val rnSt4Am: Int,
+    val rnSt4Pm: Int,
+    val rnSt5Am: Int,
+    val rnSt5Pm: Int,
+    val rnSt6Am: Int,
+    val rnSt6Pm: Int,
+    val rnSt7Am: Int,
+    val rnSt7Pm: Int,
+    val rnSt8Am: Int,
+    val rnSt8Pm: Int,
+    val rnSt9Am: Int,
+    val rnSt9Pm: Int,
+    val rnSt10Am: Int,
+    val rnSt10Pm: Int,
+    val wf3Pm: String,
+    val wf3Am: String,
+    val wf4Pm: String,
+    val wf4Am: String,
+    val wf5Pm: String,
+    val wf5Am: String,
+    val wf6Pm: String,
+    val wf6Am: String,
+    val wf7Pm: String,
+    val wf7Am: String,
+    val wf8: String,
+    val wf9: String,
+    val wf10: String,
+) : Serializable

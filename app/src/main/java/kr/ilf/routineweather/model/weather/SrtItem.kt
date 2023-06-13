@@ -2,7 +2,7 @@ package kr.ilf.routineweather.model.weather
 
 import java.io.Serializable
 
-data class ResponseItem(
+data class SrtItem(
     val baseDate: String,
     val baseTime: String,
     val category: String,
