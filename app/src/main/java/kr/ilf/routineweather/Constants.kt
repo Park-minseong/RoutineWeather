@@ -67,11 +67,11 @@ object Constants {
         return when (weatherCode) {
             "10" -> R.drawable.sun_max_fill
             "30" -> R.drawable.cloud_sun_fill
-            "31" -> R.drawable.cloud_sun_heavyrain_fill
+            "31" -> R.drawable.cloud_sun_rain_fill
             "32" -> R.drawable.cloud_sun_snow_fill
             "33" -> R.drawable.cloud_sun_snow_fill
             "34" -> R.drawable.cloud_sun_rain_fill
-            "35" -> R.drawable.cloud_sun_heavyrain_fill
+            "35" -> R.drawable.cloud_sun_drizzle_fill
             "36" -> R.drawable.cloud_sun_snow_fill
             "37" -> R.drawable.cloud_sun_snow_fill
             "40" -> R.drawable.cloud_fill
