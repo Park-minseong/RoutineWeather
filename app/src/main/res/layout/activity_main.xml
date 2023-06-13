@@ -326,17 +326,104 @@
         android:layout_marginStart="@dimen/card_view_marginStartEnd"
         android:layout_marginTop="@dimen/card_view_marginTopBottom"
         android:layout_marginEnd="@dimen/card_view_marginStartEnd"
-        android:layout_marginBottom="@dimen/card_view_marginTopBottom"
+        android:layout_marginBottom="@dimen/item_marginStartEnd"
         android:background="@android:color/white"
         app:cardCornerRadius="@dimen/card_view_corner_radius"
         app:cardElevation="@dimen/card_view_elevation">
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rv_mid"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+            android:orientation="vertical">
 
-            />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/item_marginStartEnd"
+                android:layout_marginEnd="@dimen/item_marginStartEnd"
+                android:gravity="center">
+
+                <TextView
+                    android:layout_width="50dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="@dimen/item_marginStartEnd"
+                    android:gravity="center"
+                    android:text="date"
+                    android:textColor="@color/secondary_text_color"
+                    android:textSize="@dimen/value_text_size" />
+
+                <View
+                    android:layout_width="@dimen/divider_height"
+                    android:layout_height="match_parent"
+                    android:layout_marginHorizontal="@dimen/item_marginStartEnd"
+                    android:layout_marginVertical="5dp"
+                    />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="5dp"
+                        android:layout_weight="2"
+                        android:gravity="center"
+                        android:text="am"
+                        android:textColor="@color/secondary_text_color" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="35dp"
+                        android:layout_marginStart="15dp"
+                        android:layout_weight="2"
+                        android:gravity="center"
+                        android:text="pm"
+                        android:textColor="@color/secondary_text_color" />
+
+                    <View
+                        android:layout_width="@dimen/divider_height"
+                        android:layout_height="match_parent"
+                        android:layout_marginHorizontal="@dimen/item_marginStartEnd"
+                        android:layout_marginVertical="5dp"
+                   />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:text="min"
+                        android:textColor="@color/secondary_text_color" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:text="max"
+                        android:textColor="@color/secondary_text_color" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/divider_height"
+                android:layout_marginHorizontal="@dimen/divider_margin"
+                android:layout_marginBottom="5dp"
+
+                android:background="@color/divider_background" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_mid"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                app:layoutManager="androidx.recyclerview.widget.GridLayoutManager" />
+        </LinearLayout>
     </androidx.cardview.widget.CardView>
 </LinearLayout>

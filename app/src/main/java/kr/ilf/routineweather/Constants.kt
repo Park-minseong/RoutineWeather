@@ -44,13 +44,6 @@ object Constants {
 
     val weatherDescOpenApi: Map<String, String> = mapOf(
         "10" to "맑음",
-        "11" to "맑고 비",
-        "12" to "맑고 비/눈",
-        "13" to "맑고 눈",
-        "14" to "맑고 소나기",
-        "15" to "맑고 빗방울 떨어짐",
-        "16" to "맑고 빗방울과 눈날림",
-        "17" to "맑고 눈날림",
         "30" to "구름많음",
         "31" to "구름많고 비",
         "32" to "구름많고 비/눈",

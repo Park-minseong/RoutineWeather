@@ -22,6 +22,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
@@ -832,8 +833,10 @@ class MainActivity : AppCompatActivity() {
                 val rnStAm = midLandItem["rnSt${afterDate}Am"]!! as Double
                 val rnStPm = midLandItem["rnSt${afterDate}Pm"]!! as Double
 
-                val wfAm = midLandItem["wf${afterDate}Am"]?.toString() ?: midLandItem["wf${afterDate}"]!!.toString()
-                val wfPm = midLandItem["wf${afterDate}Pm"]?.toString() ?: midLandItem["wf${afterDate}"]!!.toString()
+                val wfAm = midLandItem["wf${afterDate}Am"]?.toString()
+                    ?: midLandItem["wf${afterDate}"]!!.toString()
+                val wfPm = midLandItem["wf${afterDate}Pm"]?.toString()
+                    ?: midLandItem["wf${afterDate}"]!!.toString()
 
                 val midTa = MidTa(
                     afterDate,
@@ -853,7 +856,8 @@ class MainActivity : AppCompatActivity() {
             }
 
             binding?.rvMid?.adapter = MidWeatherAdapter(this, midTas)
-            binding?.rvMid?.layoutManager = GridLayoutManager(this, 2)
+//            binding?.rvMid?.layoutManager = GridLayoutManager(this, 2)
+            binding?.rvMid?.layoutManager = LinearLayoutManager(this)
         }
     }
 
@@ -921,24 +925,10 @@ class MainActivity : AppCompatActivity() {
         var count = 0
 
         ultraSrtFcstsMap.forEach { (key, ultraSrtFcstMap) ->
+            val weatherCode = ultraSrtFcstMap["SKY"] + ultraSrtNcst.pty
+
             if (count == 0) {
-                when (ultraSrtNcst.pty) {
-                    "1", "4", "5" -> {
-                        binding?.ivMain?.setImageDrawable(getDrawable(R.drawable.rain))
-                    }
-
-                    "2", "3", "6", "7" -> {
-                        binding?.ivMain?.setImageDrawable(getDrawable(R.drawable.snowflake))
-                    }
-
-                    else -> {
-                        if (ultraSrtFcstMap["SKY"] == "4") {
-                            binding?.ivMain?.setImageDrawable(getDrawable(R.drawable.cloud))
-                        } else {
-                            binding?.ivMain?.setImageDrawable(getDrawable(R.drawable.sunny))
-                        }
-                    }
-                }
+                binding?.ivMain?.setImageDrawable(getDrawable(getDrawableWeather(weatherCode)))
 
                 binding?.tvMain?.text =
                     Constants.weatherDescOpenApi[ultraSrtFcstMap["SKY"] + ultraSrtNcst.pty]
@@ -1088,6 +1078,29 @@ class MainActivity : AppCompatActivity() {
 
             else -> "0200"
 
+        }
+    }
+
+    private fun getDrawableWeather(weatherCode: String): Int {
+        return when (weatherCode) {
+            "10" -> R.drawable.sun_max_fill
+            "30" -> R.drawable.cloud_fill
+            "31" -> R.drawable.cloud_heavyrain_fill
+            "32" -> R.drawable.cloud_sleet_fill
+            "33" -> R.drawable.cloud_snow_fill
+            "34" -> R.drawable.cloud_rain_fill
+            "35" -> R.drawable.cloud_drizzle_fill
+            "36" -> R.drawable.cloud_sleet_fill
+            "37" -> R.drawable.cloud_snow_fill
+            "40" -> R.drawable.cloud_fill
+            "41" -> R.drawable.cloud_heavyrain_fill
+            "42" -> R.drawable.cloud_sleet_fill
+            "43" -> R.drawable.cloud_snow_fill
+            "44" -> R.drawable.cloud_rain_fill
+            "45" -> R.drawable.cloud_drizzle_fill
+            "46" -> R.drawable.cloud_sleet_fill
+            "47" -> R.drawable.cloud_snow_fill
+            else -> R.drawable.sun_max_fill
         }
     }
 }
