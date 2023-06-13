@@ -62,6 +62,26 @@ object Constants {
         "47" to "흐리고 눈날림"
     )
 
+    val weatherCodeOpenApi: Map<String, String> = mapOf(
+        "맑음" to "10",
+        "구름많음" to "30",
+        "구름많고 비" to "31",
+        "구름많고 비/눈" to "32",
+        "구름많고 눈" to "33",
+        "구름많고 소나기" to "34",
+        "구름많고 빗방울 떨어짐" to "35",
+        "구름많고 빗방울과 눈날림" to "36",
+        "구름많고 눈날림" to "37",
+        "흐림" to "40",
+        "흐리고 비" to "41",
+        "흐리고 비/눈" to "42",
+        "흐리고 눈" to "43",
+        "흐리고 소나기" to "44",
+        "45" to "흐리고 빗방울 떨어짐",
+        "흐리고 빗방울과 눈날림" to "46",
+        "흐리고 눈날림" to "47",
+    )
+
 
     fun getDrawableIdWeather(weatherCode: String): Int {
         return when (weatherCode) {
@@ -168,7 +188,7 @@ object Constants {
         "양양",
         "강릉",
         "동해",
-        "삼척" ,
+        "삼척",
         "태백"
     )
 
