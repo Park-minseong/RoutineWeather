@@ -129,8 +129,6 @@ class MainActivity : AppCompatActivity() {
         val updatedAddress = mSharedPreferences.getString(Constants.WEATHER_REQUEST_ADDRESS, null)
 
         if (updatedDateTime.isNullOrEmpty() || updatedAddress.isNullOrEmpty()) {
-            showCustomProgressDialog()
-
             checkPermissionsAndRequestData()
 
             return
@@ -144,8 +142,6 @@ class MainActivity : AppCompatActivity() {
             LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMddHH")).toInt()
 
         if (currentDatetimeInt - updatedDatetimeInt >= 2) {
-            showCustomProgressDialog()
-
             checkPermissionsAndRequestData()
 
             return
@@ -172,6 +168,8 @@ class MainActivity : AppCompatActivity() {
             ).withListener(object : MultiplePermissionsListener {
                 override fun onPermissionsChecked(report: MultiplePermissionsReport?) {
                     if (report!!.areAllPermissionsGranted()) {
+                        showCustomProgressDialog()
+
                         requestLocationData()
                     }
 
@@ -342,7 +340,10 @@ class MainActivity : AppCompatActivity() {
                 Geocoder(this, Locale.KOREA).getFromLocation(latitude, longitude, 1) {
                     val address = it[0]
                     mAddress =
-                        "${address.adminArea} ${address.locality?:""} ${address.subLocality?:""} ${address.thoroughfare}".replace("  ", " ")
+                        "${address.adminArea} ${address.locality ?: ""} ${address.subLocality ?: ""} ${address.thoroughfare}".replace(
+                            "  ",
+                            " "
+                        )
 
                     val adminArea = it[0].adminArea
                     val locality = it[0].locality
@@ -473,12 +474,12 @@ class MainActivity : AppCompatActivity() {
                     updatedMidUI = true
 
                     hideProgressDialog()
-                    Log.e("midTaCall Request Errorrrrr.", t.message.toString())
+                    showRequestFailedDialog("중기예보데이터 갱신 실패: ${t.message.toString()} 재시도하시겠습니까?")
+                } else {
+                    Log.e("midTaCall Request Errorrrrr count $requestCount.", t.message.toString())
+                    midTaItemCall.cancel()
+                    midTaItemCall.clone().enqueue(this)
                 }
-
-                Log.e("midTaCall Request Errorrrrr count $requestCount.", t.message.toString())
-                midTaItemCall.cancel()
-                midTaItemCall.clone().enqueue(this)
             }
         }))
     }
@@ -513,14 +514,15 @@ class MainActivity : AppCompatActivity() {
                     updatedMidUI = true
 
                     hideProgressDialog()
-                    Log.e("midLandItemCall Request Errorrrrr.", t.message.toString())
+                    showRequestFailedDialog("중기예보데이터 갱신 실패: ${t.message.toString()} 재시도하시겠습니까?")
+                } else {
+                    Log.e(
+                        "midLandItemCall Request Errorrrrr count $requestCount.",
+                        t.message.toString()
+                    )
+                    midLandItemCall.cancel()
+                    midLandItemCall.clone().enqueue(this)
                 }
-
-                Log.e(
-                    "midLandItemCall Request Errorrrrr count $requestCount.", t.message.toString()
-                )
-                midLandItemCall.cancel()
-                midLandItemCall.clone().enqueue(this)
             }
         }))
     }
@@ -552,16 +554,16 @@ class MainActivity : AppCompatActivity() {
                     updatedDustUI = true
 
                     hideProgressDialog()
-                    Log.e("nearStationCall Request Errorrrrr.", t.message.toString())
+                    showRequestFailedDialog("중기예보데이터 갱신 실패: ${t.message.toString()} 재시도하시겠습니까?")
+                } else {
+
+                    Log.e(
+                        "nearStationCall Request Errorrrrr count $requestCount.",
+                        t.message.toString()
+                    )
+                    nearStationCall.cancel()
+                    nearStationCall.clone().enqueue(this)
                 }
-
-                Log.e(
-                    "nearStationCall Request Errorrrrr count $requestCount.",
-                    t.message.toString()
-                )
-                nearStationCall.cancel()
-                nearStationCall.clone().enqueue(this)
-
             }
         })
     }
@@ -595,12 +597,16 @@ class MainActivity : AppCompatActivity() {
                     updatedDustUI = true
 
                     hideProgressDialog()
-                    Log.e("dustDataCall Request Errorrrrr.", t.message.toString())
-                }
 
-                Log.e("dustDataCall Request Errorrrrr count $requestCount.", t.message.toString())
-                dustDataCall.cancel()
-                dustDataCall.clone().enqueue(this)
+                    showRequestFailedDialog("미세먼지데이터 갱신 실패: ${t.message.toString()} 재시도하시겠습니까?")
+                } else {
+                    Log.e(
+                        "dustDataCall Request Errorrrrr count $requestCount.",
+                        t.message.toString()
+                    )
+                    dustDataCall.cancel()
+                    dustDataCall.clone().enqueue(this)
+                }
             }
         })
     }
@@ -649,12 +655,16 @@ class MainActivity : AppCompatActivity() {
                     updatedSrtUI = true
 
                     hideProgressDialog()
-                    Log.e("vilageFcstCall Request Errorrrrr.", t.message.toString())
-                }
 
-                Log.e("vilageFcstCall Request Errorrrrr count $requestCount.", t.message.toString())
-                vilageFcstCall.cancel()
-                vilageFcstCall.clone().enqueue(this)
+                    showRequestFailedDialog("단기예보데이터 갱신 실패: ${t.message.toString()} 재시도하시겠습니까?")
+                } else {
+                    Log.e(
+                        "vilageFcstCall Request Errorrrrr count $requestCount.",
+                        t.message.toString()
+                    )
+                    vilageFcstCall.cancel()
+                    vilageFcstCall.clone().enqueue(this)
+                }
             }
         })
     }
@@ -701,14 +711,16 @@ class MainActivity : AppCompatActivity() {
                     updatedSrtUI = true
 
                     hideProgressDialog()
-                    Log.e("ultraSrtFcstCall Request Errorrrrr.", t.message.toString())
-                }
 
-                Log.e(
-                    "ultraSrtFcstCall Request Errorrrrr count $requestCount.", t.message.toString()
-                )
-                ultraSrtFcstCall.cancel()
-                ultraSrtFcstCall.clone().enqueue(this)
+                    showRequestFailedDialog("단기예보데이터 갱신 실패: ${t.message.toString()} 재시도하시겠습니까?")
+                } else {
+                    Log.e(
+                        "ultraSrtFcstCall Request Errorrrrr count $requestCount.",
+                        t.message.toString()
+                    )
+                    ultraSrtFcstCall.cancel()
+                    ultraSrtFcstCall.clone().enqueue(this)
+                }
             }
         })
     }
@@ -786,16 +798,31 @@ class MainActivity : AppCompatActivity() {
                     updatedSrtUI = true
 
                     hideProgressDialog()
-                    Log.e("ultraSrtNcstCall Request Errorrrrr.", t.message.toString())
-                }
 
-                Log.e(
-                    "ultraSrtNcstCall Request Errorrrrr count $requestCount.", t.message.toString()
-                )
-                ultraSrtNcstCall.cancel()
-                ultraSrtNcstCall.clone().enqueue(this)
+                    showRequestFailedDialog("단기예보데이터 갱신 실패: ${t.message.toString()} 재시도하시겠습니까?")
+                } else {
+                    Log.e(
+                        "ultraSrtNcstCall Request Errorrrrr count $requestCount.",
+                        t.message.toString()
+                    )
+                    ultraSrtNcstCall.cancel()
+                    ultraSrtNcstCall.clone().enqueue(this)
+                }
             }
         })
+    }
+
+    private fun showRequestFailedDialog(message: String) {
+        AlertDialog.Builder(this)
+            .setTitle("갱신 실패")
+            .setMessage(message)
+            .setPositiveButton(
+                "재시도"
+            ) { _, _ ->
+                checkPermissionsAndRequestData()
+            }.setNegativeButton("아니요") { dialog, _ ->
+                dialog.dismiss()
+            }.show()
     }
 
     private fun showRationalDialogForPermissions() {

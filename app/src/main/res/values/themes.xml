@@ -5,6 +5,9 @@
         <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
         <item name="colorPrimaryDark">@color/none</item>
         <item name="android:windowLightStatusBar">true</item>
+
+<!--        <item name="android:windowSplashScreenBackground" tools:targetApi="TIRAMISU">@color/cloud</item>-->
+<!--        <item name="android:windowSplashScreenAnimatedIcon" tools:targetApi="s">@drawable/cloud_sun_rain_fill</item>-->
     </style>
 
     <style name="Theme.WeatherApp" parent="Base.Theme.WeatherApp" />
