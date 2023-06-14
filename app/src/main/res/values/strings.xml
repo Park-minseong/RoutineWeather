@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">RoutineWeather</string>
 
-    <string name="please_wait">Please Wait&#8230;</string>
+    <string name="please_wait">데이터 갱신 중&#8230;</string>
 
     <string name="image_contentDescription">image</string>
     <string name="miles_per_hour">miles/hour</string>

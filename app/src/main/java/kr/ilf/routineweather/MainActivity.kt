@@ -76,8 +76,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mFusedLocationClient: FusedLocationProviderClient
     private lateinit var mSharedPreferences: SharedPreferences
     private lateinit var weatherService: WeatherService
-
     private var isCompletedCallUltraSrtNcst = false
+
     private var isCompletedCallUltraSrtFcst = false
     private var isCompletedCallVilageFcst = false
     private var isCompletedCallMidTa = false
@@ -85,6 +85,7 @@ class MainActivity : AppCompatActivity() {
     private var updatedSrtUI = false
     private var updatedDustUI = false
     private var updatedMidUI = false
+    private var isFirst = true
     private var ultraSrtFcstBaseTime = "0030"
     private var vilageFcstBaseTime = "0000"
     private var currentDate = "000000"
@@ -121,6 +122,8 @@ class MainActivity : AppCompatActivity() {
         setupSrtUI()
         setupMidUI()
         setupDustUI()
+
+        isFirst = false
 
         val updatedDateTime = mSharedPreferences.getString(Constants.WEATHER_REQUEST_DATETIME, null)
         val updatedAddress = mSharedPreferences.getString(Constants.WEATHER_REQUEST_ADDRESS, null)
@@ -960,7 +963,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun saveUpdateInfo() {
-        if (updatedSrtUI && updatedDustUI && updatedMidUI) {
+        if (updatedSrtUI && updatedDustUI && updatedMidUI && !isFirst) {
             val currentDatetime =
                 LocalDateTime.now().format(DateTimeFormatter.ofPattern("yy.MM.dd HH:mm"))
 
@@ -969,8 +972,8 @@ class MainActivity : AppCompatActivity() {
                 .putString(Constants.WEATHER_REQUEST_ADDRESS, mAddress)
                 .apply()
 
-            binding?.tvUpdatedTime?.text = "최근 갱신: $currentDatetime"
-            binding?.tvUpdatedAddress?.text = mAddress
+            binding?.tvUpdatedTime?.text = "갱신: $currentDatetime  자료: 기상청"
+            binding?.tvUpdatedAddress?.text = "위치: $mAddress"
         }
     }
 
