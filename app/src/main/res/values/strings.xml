@@ -8,4 +8,5 @@
     <string name="action_refresh">Refresh</string>
     <string name="dust">미세먼지</string>
     <string name="dust_small">초미세먼지</string>
+    <string name="refresh">Refresh</string>
 </resources>

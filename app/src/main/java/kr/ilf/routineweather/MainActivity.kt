@@ -77,18 +77,22 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mSharedPreferences: SharedPreferences
     private lateinit var weatherService: WeatherService
 
-    private var isCompletedCallUltraSrtNcst = true
-    private var isCompletedCallUltraSrtFcst = true
-    private var isCompletedCallVilageFcst = true
-    private var isCompletedCallMidTa = true
-    private var isCompletedCallMidLand = true
-
-    private var ultraSrtNcstBaseTime = "0000"
+    private var isCompletedCallUltraSrtNcst = false
+    private var isCompletedCallUltraSrtFcst = false
+    private var isCompletedCallVilageFcst = false
+    private var isCompletedCallMidTa = false
+    private var isCompletedCallMidLand = false
+    private var updatedSrtUI = false
+    private var updatedDustUI = false
+    private var updatedMidUI = false
     private var ultraSrtFcstBaseTime = "0030"
     private var vilageFcstBaseTime = "0000"
     private var currentDate = "000000"
+    private var mAddress = ""
 
     private var binding: ActivityMainBinding? = null
+
+    private var ultraSrtNcstBaseTime = "0000"
 
     private var mProgressDialog: Dialog? = null
 
@@ -101,18 +105,54 @@ class MainActivity : AppCompatActivity() {
 
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
+        binding?.cvLine5?.setOnClickListener {
+            showCustomProgressDialog()
+            checkPermissionsAndRequestData()
+        }
+
         mSharedPreferences = getSharedPreferences(Constants.PREFERENCE_NAME, Context.MODE_PRIVATE)
 
-        showCustomProgressDialog()
+        isCompletedCallUltraSrtNcst = true
+        isCompletedCallUltraSrtFcst = true
+        isCompletedCallVilageFcst = true
+        isCompletedCallMidTa = true
+        isCompletedCallMidLand = true
 
         setupSrtUI()
+        setupMidUI()
+        setupDustUI()
 
-        isCompletedCallUltraSrtNcst = false
-        isCompletedCallUltraSrtFcst = false
-        isCompletedCallVilageFcst = false
-        isCompletedCallMidTa = false
-        isCompletedCallMidLand = false
+        val updatedDateTime = mSharedPreferences.getString(Constants.WEATHER_REQUEST_DATETIME, null)
+        val updatedAddress = mSharedPreferences.getString(Constants.WEATHER_REQUEST_ADDRESS, null)
 
+        if (updatedDateTime.isNullOrEmpty() || updatedAddress.isNullOrEmpty()) {
+            showCustomProgressDialog()
+
+            checkPermissionsAndRequestData()
+
+            return
+        }
+
+        val updatedDatetimeInt =
+            LocalDateTime.parse(updatedDateTime, DateTimeFormatter.ofPattern("yy.MM.dd HH:mm"))
+                .format(DateTimeFormatter.ofPattern("yyMMddHH")).toInt()
+
+        val currentDatetimeInt =
+            LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMddHH")).toInt()
+
+        if (currentDatetimeInt - updatedDatetimeInt >= 2) {
+            showCustomProgressDialog()
+
+            checkPermissionsAndRequestData()
+
+            return
+        }
+
+        binding?.tvUpdatedTime?.text = "최근 갱신: $updatedDateTime"
+        binding?.tvUpdatedAddress?.text = updatedAddress
+    }
+
+    private fun checkPermissionsAndRequestData() {
         if (!isLocationEnabled()) {
             Toast.makeText(
                 this@MainActivity,
@@ -158,7 +198,7 @@ class MainActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.action_refresh -> {
-                requestLocationData()
+                checkPermissionsAndRequestData()
                 true
             }
 
@@ -223,7 +263,7 @@ class MainActivity : AppCompatActivity() {
             val ny = gridGps.y.toInt()
             // 기상청 격자 좌표로 변환 끝
 
-            // tm 좌표로 변환
+            // tm 좌표로 변환mAddress
             val pt = CoordPoint(longitude, latitude)
             val transCoord =
                 TransCoord.getTransCoord(pt, TransCoord.COORD_TYPE_WGS84, TransCoord.COORD_TYPE_TM)
@@ -232,7 +272,7 @@ class MainActivity : AppCompatActivity() {
             val tmY = transCoord.y
             // tm 좌표로 변환 끝
 
-            val retrofit: Retrofit = Retrofit.Builder().baseUrl(Constants.BASE_URL)
+            val retrofit: Retrofit = Retrofit.Builder().baseUrl(Constants.OPENAPI_BASE_URL)
                 .addConverterFactory(GsonConverterFactory.create()).client(okHttpClient).build()
 
             weatherService = retrofit.create(WeatherService::class.java)
@@ -297,6 +337,10 @@ class MainActivity : AppCompatActivity() {
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 Geocoder(this, Locale.KOREA).getFromLocation(latitude, longitude, 1) {
+                    val address = it[0]
+                    mAddress =
+                        "${address.adminArea} ${address.locality?:""} ${address.subLocality?:""} ${address.thoroughfare}".replace("  ", " ")
+
                     val adminArea = it[0].adminArea
                     val locality = it[0].locality
 
@@ -311,6 +355,8 @@ class MainActivity : AppCompatActivity() {
                 }
             } else {
                 val addresses = Geocoder(this, Locale.KOREA).getFromLocation(latitude, longitude, 1)
+
+                mAddress = addresses?.get(0).toString()
 
                 val adminArea = addresses?.get(0)?.adminArea
                 val locality = addresses?.get(0)?.locality
@@ -342,8 +388,16 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        val requestTime = getRequestTime()
+
         // 중기 기온조회 Call
-        return weatherService.getMidTa(regId = midTaRefId!!, tmFc = currentDate + "0600")
+        return weatherService.getMidTa(regId = midTaRefId!!, tmFc = currentDate + requestTime)
+    }
+
+    private fun getRequestTime(): String {
+        val currentHour = LocalDateTime.now().hour
+
+        return if (currentHour < 6 || currentHour >= 18) "1800" else "0600"
     }
 
     private fun getMidLandItemCall(
@@ -378,8 +432,13 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        val requestTime = getRequestTime()
+
         // 중기 육상예보조회 Call
-        return weatherService.getMidLandFcst(regId = midLandRefId!!, tmFc = currentDate + "0600")
+        return weatherService.getMidLandFcst(
+            regId = midLandRefId!!,
+            tmFc = currentDate + requestTime
+        )
     }
 
     private fun enqueueMidTaCall(midTaItemCall: Call<WeatherResponse<MidTaItem>>) {
@@ -408,6 +467,8 @@ class MainActivity : AppCompatActivity() {
                 requestCount++
 
                 if (requestCount > 2) {
+                    updatedMidUI = true
+
                     hideProgressDialog()
                     Log.e("midTaCall Request Errorrrrr.", t.message.toString())
                 }
@@ -446,6 +507,8 @@ class MainActivity : AppCompatActivity() {
                 requestCount++
 
                 if (requestCount > 2) {
+                    updatedMidUI = true
+
                     hideProgressDialog()
                     Log.e("midLandItemCall Request Errorrrrr.", t.message.toString())
                 }
@@ -482,7 +545,19 @@ class MainActivity : AppCompatActivity() {
             override fun onFailure(call: Call<DustResponse<StationItem>>, t: Throwable) {
                 requestCount++
 
-                Log.e("nearStationCall Request Errorrrrr.", t.message.toString())
+                if (requestCount > 2) {
+                    updatedDustUI = true
+
+                    hideProgressDialog()
+                    Log.e("nearStationCall Request Errorrrrr.", t.message.toString())
+                }
+
+                Log.e(
+                    "nearStationCall Request Errorrrrr count $requestCount.",
+                    t.message.toString()
+                )
+                nearStationCall.cancel()
+                nearStationCall.clone().enqueue(this)
 
             }
         })
@@ -514,6 +589,8 @@ class MainActivity : AppCompatActivity() {
                 requestCount++
 
                 if (requestCount > 2) {
+                    updatedDustUI = true
+
                     hideProgressDialog()
                     Log.e("dustDataCall Request Errorrrrr.", t.message.toString())
                 }
@@ -566,6 +643,8 @@ class MainActivity : AppCompatActivity() {
                 requestCount++
 
                 if (requestCount > 2) {
+                    updatedSrtUI = true
+
                     hideProgressDialog()
                     Log.e("vilageFcstCall Request Errorrrrr.", t.message.toString())
                 }
@@ -616,6 +695,8 @@ class MainActivity : AppCompatActivity() {
                 requestCount++
 
                 if (requestCount > 2) {
+                    updatedSrtUI = true
+
                     hideProgressDialog()
                     Log.e("ultraSrtFcstCall Request Errorrrrr.", t.message.toString())
                 }
@@ -699,6 +780,8 @@ class MainActivity : AppCompatActivity() {
                 requestCount++
 
                 if (requestCount > 2) {
+                    updatedSrtUI = true
+
                     hideProgressDialog()
                     Log.e("ultraSrtNcstCall Request Errorrrrr.", t.message.toString())
                 }
@@ -736,14 +819,19 @@ class MainActivity : AppCompatActivity() {
 
         if (!mProgressDialog!!.isShowing) {
             mProgressDialog!!.setContentView(R.layout.dialog_custom_progress)
+            mProgressDialog!!.setCancelable(false)
 
             mProgressDialog!!.show()
         }
     }
 
     private fun hideProgressDialog() {
-        if (mProgressDialog != null) {
+        if (mProgressDialog != null && updatedSrtUI && updatedDustUI && updatedMidUI) {
             mProgressDialog!!.dismiss()
+
+            updatedSrtUI = false
+            updatedDustUI = false
+            updatedMidUI = false
         }
     }
 
@@ -775,8 +863,11 @@ class MainActivity : AppCompatActivity() {
                 binding?.tvHumidity?.text = ultraSrtNcst.reh + " %"
                 binding?.tvPrecipitation?.text = ultraSrtNcst.rn1 + "mm"
 
+                updatedSrtUI = true
+
+                saveUpdateInfo()
+
                 hideProgressDialog()
-                return
             }
         }
     }
@@ -799,7 +890,11 @@ class MainActivity : AppCompatActivity() {
                     binding?.tvPm10?.setTextColor(getDustColor(it["pm10Grade1h"]!!))
                     binding?.tvPm25?.setTextColor(getDustColor(it["pm25Grade1h"]!!))
 
-                    return
+                    updatedDustUI = true
+
+                    saveUpdateInfo()
+
+                    hideProgressDialog()
                 }
             }
         }
@@ -855,8 +950,27 @@ class MainActivity : AppCompatActivity() {
             }
 
             binding?.rvMid?.adapter = MidWeatherAdapter(this, midTas)
-//            binding?.rvMid?.layoutManager = GridLayoutManager(this, 2)
             binding?.rvMid?.layoutManager = LinearLayoutManager(this)
+
+            updatedMidUI = true
+
+            saveUpdateInfo()
+            hideProgressDialog()
+        }
+    }
+
+    private fun saveUpdateInfo() {
+        if (updatedSrtUI && updatedDustUI && updatedMidUI) {
+            val currentDatetime =
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yy.MM.dd HH:mm"))
+
+            mSharedPreferences.edit()
+                .putString(Constants.WEATHER_REQUEST_DATETIME, currentDatetime)
+                .putString(Constants.WEATHER_REQUEST_ADDRESS, mAddress)
+                .apply()
+
+            binding?.tvUpdatedTime?.text = "최근 갱신: $currentDatetime"
+            binding?.tvUpdatedAddress?.text = mAddress
         }
     }
 
@@ -927,7 +1041,13 @@ class MainActivity : AppCompatActivity() {
             val weatherCode = ultraSrtFcstMap["SKY"] + ultraSrtNcst.pty
 
             if (count == 0) {
-                binding?.ivMain?.setImageDrawable(getDrawable(Constants.getDrawableIdWeather(weatherCode)))
+                binding?.ivMain?.setImageDrawable(
+                    getDrawable(
+                        Constants.getDrawableIdWeather(
+                            weatherCode
+                        )
+                    )
+                )
 
                 binding?.tvMain?.text =
                     Constants.weatherDescOpenApi[ultraSrtFcstMap["SKY"] + ultraSrtNcst.pty]

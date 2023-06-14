@@ -9,7 +9,7 @@ object Constants {
 
     const val OPENWEATHER_API_KEY = BuildConfig.OPENWEATHER_API_KEY
     const val OPENAPI_API_KEY = BuildConfig.OPENAPI_API_KEY
-    const val BASE_URL = "http://apis.data.go.kr/"
+    const val OPENAPI_BASE_URL = "http://apis.data.go.kr/"
     const val METRIC_UNIT = "metric"
     const val PREFERENCE_NAME = "WeatherAppPreference"
     const val WEATHER_RESPONSE_DATA_ULTRA_FCST = "weather_response_data_ultra_fcst"
@@ -18,6 +18,8 @@ object Constants {
     const val WEATHER_RESPONSE_DATA_DUST = "weather_response_data_dust"
     const val WEATHER_RESPONSE_DATA_MID_TA = "weather_response_data_mid_ta"
     const val WEATHER_RESPONSE_DATA_MID_LAND = "weather_response_data_mid_land"
+    const val WEATHER_REQUEST_DATETIME = "weather_request_datetime"
+    const val WEATHER_REQUEST_ADDRESS = "weather_request_address"
 
     fun isNetworkAvailable(context: Context): Boolean {
         val connectivityManager =
@@ -416,5 +418,4 @@ object Constants {
         "고성(장전)" to "11L10002",
         "평강" to "11L10003",
     )
-
 }
