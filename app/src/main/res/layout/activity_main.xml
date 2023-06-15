@@ -460,7 +460,7 @@
                 android:layout_weight="1"
                 android:gravity="center"
                 android:textColor="@color/secondary_text_color"
-                android:textSize="@dimen/small_label_text_size"
+                android:textSize="9sp"
                 tools:text="갱신: 230613 14:23  자료: 기상청" />
 
             <ImageView
@@ -477,7 +477,7 @@
                 android:layout_weight="1"
                 android:gravity="center"
                 android:textColor="@color/secondary_text_color"
-                android:textSize="@dimen/small_label_text_size"
+                android:textSize="9sp"
                 tools:text="서울특별시 강남구" />
         </LinearLayout>
     </androidx.cardview.widget.CardView>
