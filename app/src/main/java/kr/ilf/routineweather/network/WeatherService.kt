@@ -1,15 +1,20 @@
 package kr.ilf.routineweather.network
 
+import android.provider.Contacts.SettingsColumns.KEY
 import kr.ilf.routineweather.Constants
 import kr.ilf.routineweather.model.dust.DustItem
 import kr.ilf.routineweather.model.dust.DustResponse
 import kr.ilf.routineweather.model.dust.StationItem
+import kr.ilf.routineweather.model.geocoding.Reverse
 import kr.ilf.routineweather.model.weather.MidLandItem
 import kr.ilf.routineweather.model.weather.MidTaItem
 import kr.ilf.routineweather.model.weather.SrtItem
 import kr.ilf.routineweather.model.weather.WeatherResponse
 import retrofit2.Call
 import retrofit2.http.GET
+import retrofit2.http.HEAD
+import retrofit2.http.Header
+import retrofit2.http.Headers
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -22,6 +27,18 @@ interface WeatherService {
         @Query("units") units: String?,
         @Query("appid") appid: String,
     ): Call<WeatherResponse<SrtItem>>
+
+    // 네이버 Reverse Geocoder
+    @Headers(
+        "X-NCP-APIGW-API-KEY-ID: ${Constants.X_NCP_APIGW_API_KEY_ID}",
+        "X-NCP-APIGW-API-KEY: ${Constants.X_NCP_APIGW_API_KEY}"
+    )
+    @GET("map-reversegeocode/v2/gc")
+    fun reverseGeocoding(
+        @Query("coords") coords: String,
+        @Query("orders") orders: String = "admcode",
+        @Query("output") output: String = "json",
+    ) : Call<Reverse>
 
     // 기상청 Api
     @GET("1360000/VilageFcstInfoService_2.0/{path}")

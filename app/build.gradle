@@ -21,6 +21,8 @@ android {
 
         buildConfigField "String", "OPENWEATHER_API_KEY", properties['openWeather_api_key']
         buildConfigField "String", "OPENAPI_API_KEY", properties['openApi_api_key']
+        buildConfigField "String", "X_NCP_APIGW_API_KEY_ID", properties['x_ncp_apigw_api_key_id']
+        buildConfigField "String", "X_NCP_APIGW_API_KEY", properties["x_ncp_apigw_api_key"]
     }
 
     buildTypes {

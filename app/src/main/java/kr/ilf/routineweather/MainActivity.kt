@@ -40,6 +40,7 @@ import kr.ilf.routineweather.databinding.ActivityMainBinding
 import kr.ilf.routineweather.model.dust.DustItem
 import kr.ilf.routineweather.model.dust.DustResponse
 import kr.ilf.routineweather.model.dust.StationItem
+import kr.ilf.routineweather.model.geocoding.Reverse
 import kr.ilf.routineweather.model.weather.MidLandItem
 import kr.ilf.routineweather.model.weather.MidTa
 import kr.ilf.routineweather.model.weather.MidTaItem
@@ -129,8 +130,6 @@ class MainActivity : AppCompatActivity() {
         val updatedAddress = mSharedPreferences.getString(Constants.WEATHER_REQUEST_ADDRESS, null)
 
         if (updatedDateTime.isNullOrEmpty() || updatedAddress.isNullOrEmpty()) {
-            showCustomProgressDialog()
-
             checkPermissionsAndRequestData()
 
             return
@@ -144,8 +143,6 @@ class MainActivity : AppCompatActivity() {
             LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMddHH")).toInt()
 
         if (currentDatetimeInt - updatedDatetimeInt >= 2) {
-            showCustomProgressDialog()
-
             checkPermissionsAndRequestData()
 
             return
@@ -172,6 +169,8 @@ class MainActivity : AppCompatActivity() {
             ).withListener(object : MultiplePermissionsListener {
                 override fun onPermissionsChecked(report: MultiplePermissionsReport?) {
                     if (report!!.areAllPermissionsGranted()) {
+                        showCustomProgressDialog()
+
                         requestLocationData()
                     }
 
@@ -229,6 +228,8 @@ class MainActivity : AppCompatActivity() {
 
             val latitude = mLastLocation.latitude
             val longitude = mLastLocation.longitude
+
+            Log.d("좌표: ", "$latitude,$longitude")
 
             getLocationWeatherDetails(latitude, longitude)
         }
@@ -338,39 +339,18 @@ class MainActivity : AppCompatActivity() {
             enqueueVilageNcstCall(vilageFcstCall)
             enqueueNearStationCall(nearStationCall)
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                Geocoder(this, Locale.KOREA).getFromLocation(latitude, longitude, 1) {
-                    val address = it[0]
-                    mAddress =
-                        "${address.adminArea} ${address.locality?:""} ${address.subLocality?:""} ${address.thoroughfare}".replace("  ", " ")
+            val naverRetrofit = Retrofit.Builder()
+                .baseUrl(Constants.NAVER_API_BASE_URL)
+                .addConverterFactory(GsonConverterFactory.create())
+                .client(okHttpClient)
+                .build()
 
-                    val adminArea = it[0].adminArea
-                    val locality = it[0].locality
+            val geocodingService = naverRetrofit.create(WeatherService::class.java)
 
-                    val midTaItemCall: Call<WeatherResponse<MidTaItem>> =
-                        getMidTaItemCall(adminArea, locality)
+            val reverseGeocodingCall: Call<Reverse> =
+                geocodingService.reverseGeocoding("$longitude,$latitude")
 
-                    val midLandItemCall: Call<WeatherResponse<MidLandItem>> =
-                        getMidLandItemCall(adminArea, locality)
-
-                    enqueueMidTaCall(midTaItemCall)
-                    enqueueMidLandCall(midLandItemCall)
-                }
-            } else {
-                val addresses = Geocoder(this, Locale.KOREA).getFromLocation(latitude, longitude, 1)
-
-                mAddress = addresses?.get(0).toString()
-
-                val adminArea = addresses?.get(0)?.adminArea
-                val locality = addresses?.get(0)?.locality
-
-                // 중기 기온조회 Call
-                val midTaItemCall: Call<WeatherResponse<MidTaItem>> =
-                    getMidTaItemCall(adminArea, locality)
-
-                enqueueMidTaCall(midTaItemCall)
-            }
-
+            enqueueReverseGeocodingCall(reverseGeocodingCall)
         }
     }
 
@@ -444,6 +424,51 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
+    private fun enqueueReverseGeocodingCall(reverseGeocodingCall: Call<Reverse>) {
+        var requestCount = 0
+
+        reverseGeocodingCall.enqueue(object : Callback<Reverse> {
+            override fun onResponse(call: Call<Reverse>, response: Response<Reverse>) {
+                if (response.isSuccessful) {
+                    val region = response.body()?.results?.get(0)?.region
+
+                    mAddress =
+                        "${region?.area1?.name} ${region?.area2?.name ?: ""} ${region?.area3?.name ?: ""} ${region?.area4?.name ?: ""}".replace(
+                            "  ",
+                            " "
+                        )
+
+                    val adminArea = region?.area1?.name
+                    val locality = region?.area2?.name
+
+                    val midTaItemCall: Call<WeatherResponse<MidTaItem>> =
+                        getMidTaItemCall(adminArea, locality)
+
+                    val midLandItemCall: Call<WeatherResponse<MidLandItem>> =
+                        getMidLandItemCall(adminArea, locality)
+
+                    enqueueMidTaCall(midTaItemCall)
+                    enqueueMidLandCall(midLandItemCall)
+                }
+            }
+
+            override fun onFailure(call: Call<Reverse>, t: Throwable) {
+                requestCount++
+
+                if (requestCount > 2) {
+                    updatedMidUI = true
+
+                    hideProgressDialog()
+                    showRequestFailedDialog("주소정보 갱신 실패: ${t.message.toString()} 재시도하시겠습니까?")
+                } else {
+                    Log.e("reverseGeocodingCall Request Errorrrrr count $requestCount.", t.message.toString())
+                    reverseGeocodingCall.cancel()
+                    reverseGeocodingCall.clone().enqueue(this)
+                }
+            }
+        })
+    }
+
     private fun enqueueMidTaCall(midTaItemCall: Call<WeatherResponse<MidTaItem>>) {
         var requestCount = 0
 
@@ -473,12 +498,12 @@ class MainActivity : AppCompatActivity() {
                     updatedMidUI = true
 
                     hideProgressDialog()
-                    Log.e("midTaCall Request Errorrrrr.", t.message.toString())
+                    showRequestFailedDialog("중기예보데이터 갱신 실패: ${t.message.toString()} 재시도하시겠습니까?")
+                } else {
+                    Log.e("midTaCall Request Errorrrrr count $requestCount.", t.message.toString())
+                    midTaItemCall.cancel()
+                    midTaItemCall.clone().enqueue(this)
                 }
-
-                Log.e("midTaCall Request Errorrrrr count $requestCount.", t.message.toString())
-                midTaItemCall.cancel()
-                midTaItemCall.clone().enqueue(this)
             }
         }))
     }
@@ -513,14 +538,15 @@ class MainActivity : AppCompatActivity() {
                     updatedMidUI = true
 
                     hideProgressDialog()
-                    Log.e("midLandItemCall Request Errorrrrr.", t.message.toString())
+                    showRequestFailedDialog("중기예보데이터 갱신 실패: ${t.message.toString()} 재시도하시겠습니까?")
+                } else {
+                    Log.e(
+                        "midLandItemCall Request Errorrrrr count $requestCount.",
+                        t.message.toString()
+                    )
+                    midLandItemCall.cancel()
+                    midLandItemCall.clone().enqueue(this)
                 }
-
-                Log.e(
-                    "midLandItemCall Request Errorrrrr count $requestCount.", t.message.toString()
-                )
-                midLandItemCall.cancel()
-                midLandItemCall.clone().enqueue(this)
             }
         }))
     }
@@ -534,8 +560,6 @@ class MainActivity : AppCompatActivity() {
             ) {
                 if (response.isSuccessful) {
                     val responseData = response.body()?.response?.body?.items!!
-
-                    Log.d("station", responseData.toString())
 
                     val dustDataCall = weatherService.getMsrstnAcctoRltmMesureDnsty(
                         Constants.OPENAPI_API_KEY, "json", 1, 24, responseData[0].stationName
@@ -552,16 +576,16 @@ class MainActivity : AppCompatActivity() {
                     updatedDustUI = true
 
                     hideProgressDialog()
-                    Log.e("nearStationCall Request Errorrrrr.", t.message.toString())
+                    showRequestFailedDialog("중기예보데이터 갱신 실패: ${t.message.toString()} 재시도하시겠습니까?")
+                } else {
+
+                    Log.e(
+                        "nearStationCall Request Errorrrrr count $requestCount.",
+                        t.message.toString()
+                    )
+                    nearStationCall.cancel()
+                    nearStationCall.clone().enqueue(this)
                 }
-
-                Log.e(
-                    "nearStationCall Request Errorrrrr count $requestCount.",
-                    t.message.toString()
-                )
-                nearStationCall.cancel()
-                nearStationCall.clone().enqueue(this)
-
             }
         })
     }
@@ -595,12 +619,16 @@ class MainActivity : AppCompatActivity() {
                     updatedDustUI = true
 
                     hideProgressDialog()
-                    Log.e("dustDataCall Request Errorrrrr.", t.message.toString())
-                }
 
-                Log.e("dustDataCall Request Errorrrrr count $requestCount.", t.message.toString())
-                dustDataCall.cancel()
-                dustDataCall.clone().enqueue(this)
+                    showRequestFailedDialog("미세먼지데이터 갱신 실패: ${t.message.toString()} 재시도하시겠습니까?")
+                } else {
+                    Log.e(
+                        "dustDataCall Request Errorrrrr count $requestCount.",
+                        t.message.toString()
+                    )
+                    dustDataCall.cancel()
+                    dustDataCall.clone().enqueue(this)
+                }
             }
         })
     }
@@ -649,12 +677,16 @@ class MainActivity : AppCompatActivity() {
                     updatedSrtUI = true
 
                     hideProgressDialog()
-                    Log.e("vilageFcstCall Request Errorrrrr.", t.message.toString())
-                }
 
-                Log.e("vilageFcstCall Request Errorrrrr count $requestCount.", t.message.toString())
-                vilageFcstCall.cancel()
-                vilageFcstCall.clone().enqueue(this)
+                    showRequestFailedDialog("단기예보데이터 갱신 실패: ${t.message.toString()} 재시도하시겠습니까?")
+                } else {
+                    Log.e(
+                        "vilageFcstCall Request Errorrrrr count $requestCount.",
+                        t.message.toString()
+                    )
+                    vilageFcstCall.cancel()
+                    vilageFcstCall.clone().enqueue(this)
+                }
             }
         })
     }
@@ -701,14 +733,16 @@ class MainActivity : AppCompatActivity() {
                     updatedSrtUI = true
 
                     hideProgressDialog()
-                    Log.e("ultraSrtFcstCall Request Errorrrrr.", t.message.toString())
-                }
 
-                Log.e(
-                    "ultraSrtFcstCall Request Errorrrrr count $requestCount.", t.message.toString()
-                )
-                ultraSrtFcstCall.cancel()
-                ultraSrtFcstCall.clone().enqueue(this)
+                    showRequestFailedDialog("단기예보데이터 갱신 실패: ${t.message.toString()} 재시도하시겠습니까?")
+                } else {
+                    Log.e(
+                        "ultraSrtFcstCall Request Errorrrrr count $requestCount.",
+                        t.message.toString()
+                    )
+                    ultraSrtFcstCall.cancel()
+                    ultraSrtFcstCall.clone().enqueue(this)
+                }
             }
         })
     }
@@ -786,16 +820,31 @@ class MainActivity : AppCompatActivity() {
                     updatedSrtUI = true
 
                     hideProgressDialog()
-                    Log.e("ultraSrtNcstCall Request Errorrrrr.", t.message.toString())
-                }
 
-                Log.e(
-                    "ultraSrtNcstCall Request Errorrrrr count $requestCount.", t.message.toString()
-                )
-                ultraSrtNcstCall.cancel()
-                ultraSrtNcstCall.clone().enqueue(this)
+                    showRequestFailedDialog("단기예보데이터 갱신 실패: ${t.message.toString()} 재시도하시겠습니까?")
+                } else {
+                    Log.e(
+                        "ultraSrtNcstCall Request Errorrrrr count $requestCount.",
+                        t.message.toString()
+                    )
+                    ultraSrtNcstCall.cancel()
+                    ultraSrtNcstCall.clone().enqueue(this)
+                }
             }
         })
+    }
+
+    private fun showRequestFailedDialog(message: String) {
+        AlertDialog.Builder(this)
+            .setTitle("갱신 실패")
+            .setMessage(message)
+            .setPositiveButton(
+                "재시도"
+            ) { _, _ ->
+                checkPermissionsAndRequestData()
+            }.setNegativeButton("아니요") { dialog, _ ->
+                dialog.dismiss()
+            }.show()
     }
 
     private fun showRationalDialogForPermissions() {
