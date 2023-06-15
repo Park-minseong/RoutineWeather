@@ -107,9 +107,10 @@ class MainActivity : AppCompatActivity() {
 
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
-        binding?.cvLine5?.setOnClickListener {
+        binding?.refresh?.setOnRefreshListener {
             showCustomProgressDialog()
             checkPermissionsAndRequestData()
+            binding?.refresh?.isRefreshing = false
         }
 
         mSharedPreferences = getSharedPreferences(Constants.PREFERENCE_NAME, Context.MODE_PRIVATE)
@@ -461,7 +462,10 @@ class MainActivity : AppCompatActivity() {
                     hideProgressDialog()
                     showRequestFailedDialog("주소정보 갱신 실패: ${t.message.toString()} 재시도하시겠습니까?")
                 } else {
-                    Log.e("reverseGeocodingCall Request Errorrrrr count $requestCount.", t.message.toString())
+                    Log.e(
+                        "reverseGeocodingCall Request Errorrrrr count $requestCount.",
+                        t.message.toString()
+                    )
                     reverseGeocodingCall.cancel()
                     reverseGeocodingCall.clone().enqueue(this)
                 }
