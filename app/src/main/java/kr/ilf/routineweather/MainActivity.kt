@@ -40,6 +40,7 @@ import kr.ilf.routineweather.databinding.ActivityMainBinding
 import kr.ilf.routineweather.model.dust.DustItem
 import kr.ilf.routineweather.model.dust.DustResponse
 import kr.ilf.routineweather.model.dust.StationItem
+import kr.ilf.routineweather.model.geocoding.Reverse
 import kr.ilf.routineweather.model.weather.MidLandItem
 import kr.ilf.routineweather.model.weather.MidTa
 import kr.ilf.routineweather.model.weather.MidTaItem
@@ -228,6 +229,8 @@ class MainActivity : AppCompatActivity() {
             val latitude = mLastLocation.latitude
             val longitude = mLastLocation.longitude
 
+            Log.d("좌표: ", "$latitude,$longitude")
+
             getLocationWeatherDetails(latitude, longitude)
         }
     }
@@ -336,42 +339,18 @@ class MainActivity : AppCompatActivity() {
             enqueueVilageNcstCall(vilageFcstCall)
             enqueueNearStationCall(nearStationCall)
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                Geocoder(this, Locale.KOREA).getFromLocation(latitude, longitude, 1) {
-                    val address = it[0]
-                    mAddress =
-                        "${address.adminArea} ${address.locality ?: ""} ${address.subLocality ?: ""} ${address.thoroughfare}".replace(
-                            "  ",
-                            " "
-                        )
+            val naverRetrofit = Retrofit.Builder()
+                .baseUrl(Constants.NAVER_API_BASE_URL)
+                .addConverterFactory(GsonConverterFactory.create())
+                .client(okHttpClient)
+                .build()
 
-                    val adminArea = it[0].adminArea
-                    val locality = it[0].locality
+            val geocodingService = naverRetrofit.create(WeatherService::class.java)
 
-                    val midTaItemCall: Call<WeatherResponse<MidTaItem>> =
-                        getMidTaItemCall(adminArea, locality)
+            val reverseGeocodingCall: Call<Reverse> =
+                geocodingService.reverseGeocoding("$longitude,$latitude")
 
-                    val midLandItemCall: Call<WeatherResponse<MidLandItem>> =
-                        getMidLandItemCall(adminArea, locality)
-
-                    enqueueMidTaCall(midTaItemCall)
-                    enqueueMidLandCall(midLandItemCall)
-                }
-            } else {
-                val addresses = Geocoder(this, Locale.KOREA).getFromLocation(latitude, longitude, 1)
-
-                mAddress = addresses?.get(0).toString()
-
-                val adminArea = addresses?.get(0)?.adminArea
-                val locality = addresses?.get(0)?.locality
-
-                // 중기 기온조회 Call
-                val midTaItemCall: Call<WeatherResponse<MidTaItem>> =
-                    getMidTaItemCall(adminArea, locality)
-
-                enqueueMidTaCall(midTaItemCall)
-            }
-
+            enqueueReverseGeocodingCall(reverseGeocodingCall)
         }
     }
 
@@ -443,6 +422,51 @@ class MainActivity : AppCompatActivity() {
             regId = midLandRefId!!,
             tmFc = currentDate + requestTime
         )
+    }
+
+    private fun enqueueReverseGeocodingCall(reverseGeocodingCall: Call<Reverse>) {
+        var requestCount = 0
+
+        reverseGeocodingCall.enqueue(object : Callback<Reverse> {
+            override fun onResponse(call: Call<Reverse>, response: Response<Reverse>) {
+                if (response.isSuccessful) {
+                    val region = response.body()?.results?.get(0)?.region
+
+                    mAddress =
+                        "${region?.area1?.name} ${region?.area2?.name ?: ""} ${region?.area3?.name ?: ""} ${region?.area4?.name ?: ""}".replace(
+                            "  ",
+                            " "
+                        )
+
+                    val adminArea = region?.area1?.name
+                    val locality = region?.area2?.name
+
+                    val midTaItemCall: Call<WeatherResponse<MidTaItem>> =
+                        getMidTaItemCall(adminArea, locality)
+
+                    val midLandItemCall: Call<WeatherResponse<MidLandItem>> =
+                        getMidLandItemCall(adminArea, locality)
+
+                    enqueueMidTaCall(midTaItemCall)
+                    enqueueMidLandCall(midLandItemCall)
+                }
+            }
+
+            override fun onFailure(call: Call<Reverse>, t: Throwable) {
+                requestCount++
+
+                if (requestCount > 2) {
+                    updatedMidUI = true
+
+                    hideProgressDialog()
+                    showRequestFailedDialog("주소정보 갱신 실패: ${t.message.toString()} 재시도하시겠습니까?")
+                } else {
+                    Log.e("reverseGeocodingCall Request Errorrrrr count $requestCount.", t.message.toString())
+                    reverseGeocodingCall.cancel()
+                    reverseGeocodingCall.clone().enqueue(this)
+                }
+            }
+        })
     }
 
     private fun enqueueMidTaCall(midTaItemCall: Call<WeatherResponse<MidTaItem>>) {
@@ -536,8 +560,6 @@ class MainActivity : AppCompatActivity() {
             ) {
                 if (response.isSuccessful) {
                     val responseData = response.body()?.response?.body?.items!!
-
-                    Log.d("station", responseData.toString())
 
                     val dustDataCall = weatherService.getMsrstnAcctoRltmMesureDnsty(
                         Constants.OPENAPI_API_KEY, "json", 1, 24, responseData[0].stationName

@@ -9,6 +9,9 @@ object Constants {
 
     const val OPENWEATHER_API_KEY = BuildConfig.OPENWEATHER_API_KEY
     const val OPENAPI_API_KEY = BuildConfig.OPENAPI_API_KEY
+    const val X_NCP_APIGW_API_KEY_ID = BuildConfig.X_NCP_APIGW_API_KEY_ID
+    const val X_NCP_APIGW_API_KEY = BuildConfig.X_NCP_APIGW_API_KEY
+    const val NAVER_API_BASE_URL = "https://naveropenapi.apigw.ntruss.com/"
     const val OPENAPI_BASE_URL = "http://apis.data.go.kr/"
     const val METRIC_UNIT = "metric"
     const val PREFERENCE_NAME = "WeatherAppPreference"
