@@ -7,7 +7,6 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
-import android.location.Geocoder
 import android.location.Location
 import android.location.LocationManager
 import android.net.Uri
@@ -287,6 +286,9 @@ class MainActivity : AppCompatActivity() {
             vilageFcstBaseTime = getBaseTime("vilageFcst")
 
             currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"))
+            if (vilageFcstBaseTime == "2400")
+                currentDate =
+                    LocalDate.now().minusDays(1).format(DateTimeFormatter.ofPattern("yyyyMMdd"))
 
             // 초단기 실황 Call
             val ultraSrtNcstCall: Call<WeatherResponse<SrtItem>> = weatherService.getOpenApiWeather(
@@ -372,16 +374,20 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        val requestTime = getRequestTime()
+        val tmFc = getRequestDateTime()
 
         // 중기 기온조회 Call
-        return weatherService.getMidTa(regId = midTaRefId!!, tmFc = currentDate + requestTime)
+        return weatherService.getMidTa(regId = midTaRefId!!, tmFc = tmFc)
     }
 
-    private fun getRequestTime(): String {
-        val currentHour = LocalDateTime.now().hour
+    private fun getRequestDateTime(): String {
+        return when (LocalDateTime.now().hour) {
+            in 0..5 -> LocalDate.now().minusDays(1)
+                .format(DateTimeFormatter.ofPattern("yyyyMMdd")) + "1800"
 
-        return if (currentHour < 6 || currentHour >= 18) "1800" else "0600"
+            in 18..24 -> currentDate + "1800"
+            else -> currentDate + "0600"
+        }
     }
 
     private fun getMidLandItemCall(
@@ -416,13 +422,10 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        val requestTime = getRequestTime()
+        val tmFc = getRequestDateTime()
 
         // 중기 육상예보조회 Call
-        return weatherService.getMidLandFcst(
-            regId = midLandRefId!!,
-            tmFc = currentDate + requestTime
-        )
+        return weatherService.getMidLandFcst(regId = midLandRefId!!, tmFc = tmFc)
     }
 
     private fun enqueueReverseGeocodingCall(reverseGeocodingCall: Call<Reverse>) {
@@ -1247,7 +1250,8 @@ class MainActivity : AppCompatActivity() {
                     in 14..16 -> "1400"
                     in 17..19 -> "1700"
                     in 20..22 -> "2000"
-                    else -> "2300"
+                    in 23..24 -> "2300"
+                    else -> "2400"
                 }
             }
 
