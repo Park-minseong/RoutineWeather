@@ -113,7 +113,7 @@ class MainActivity : AppCompatActivity() {
             binding?.refresh?.isRefreshing = false
         }
 
-        binding?.rvSrtFcst?.addOnScrollListener(object : RecyclerView.OnScrollListener(){
+        binding?.rvSrtFcst?.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                 super.onScrollStateChanged(recyclerView, newState)
 
@@ -948,8 +948,9 @@ class MainActivity : AppCompatActivity() {
             val dustItems =
                 Gson().fromJson(dustDataJsonString, ArrayList<Map<String, String>>()::class.java)
 
-            dustItems.forEach {
-                if (it["pm10Flag"] == null && it["pm25Flag"] == null) {
+            dustItems.filter { it["pm10Flag"] == null && it["pm25Flag"] == null }
+                .maxBy { it["dataTime"]!! }
+                .also {
                     binding?.tvPm10?.text = it["pm10Value"]
                     binding?.tvPm25?.text = it["pm25Value"]
                     binding?.tvStation?.text = it["stationName"]
@@ -964,9 +965,9 @@ class MainActivity : AppCompatActivity() {
 
                     hideProgressDialog()
                 }
-            }
         }
     }
+
 
     private fun setupMidUI() {
         val midTaItemJsonString =
