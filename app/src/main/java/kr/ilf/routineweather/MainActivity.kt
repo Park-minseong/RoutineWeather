@@ -151,7 +151,8 @@ class MainActivity : AppCompatActivity() {
         val currentDatetimeInt =
             LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMddHH")).toInt()
 
-        if (currentDatetimeInt - updatedDatetimeInt >= 2) {
+        val chai = currentDatetimeInt - updatedDatetimeInt
+        if (chai >= 2 || chai < 0) {
             checkPermissionsAndRequestData()
 
             return
